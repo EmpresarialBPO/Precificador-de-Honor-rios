@@ -622,6 +622,80 @@
     .ff-red   { background: var(--red-soft);   color: #A82020; border: 1px solid var(--red-line); }
     .ff-blue  { background: var(--blue-soft);  color: var(--blue-deep); border: 1px solid var(--blue-line); }
 
+    /* ── Simulador de negociação ──────────────────────────────────────
+       Arrasta o PREÇO, não a margem: numa negociação o cliente fala em
+       reais, e o que se precisa saber na hora é o que sobra naquele valor. */
+    .rp-sim { padding: 13px 22px 15px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+    .sim-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .sim-label {
+      font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .7px; color: var(--text-light);
+    }
+    .sim-reset {
+      font-size: 10px; font-weight: 700; color: var(--blue-deep);
+      background: none; border: none; cursor: pointer; padding: 0;
+      font-family: inherit; text-decoration: underline; text-underline-offset: 2px;
+      visibility: hidden;
+    }
+    .sim-reset:hover { color: var(--navy); }
+    body.simulando .sim-reset { visibility: visible; }
+
+    .sim-wrap { position: relative; height: 22px; }
+    .sim-track {
+      position: absolute; left: 0; right: 0; top: 8px; height: 6px;
+      background: var(--border); border-radius: 4px; overflow: hidden;
+    }
+    .sim-band { position: absolute; top: 0; bottom: 0; background: rgba(199,119,0,.22); }
+    .sim-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transition: width .05s linear; }
+    .sim-tick { position: absolute; top: 3px; width: 2px; height: 16px; border-radius: 1px; transform: translateX(-1px); }
+    .tick-be  { background: var(--red); }
+    .tick-rec { background: var(--green); }
+
+    .sim-range {
+      position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 22px;
+      margin: 0; padding: 0; background: transparent; appearance: none; -webkit-appearance: none; cursor: grab;
+    }
+    .sim-range:active { cursor: grabbing; }
+    .sim-range::-webkit-slider-runnable-track { height: 22px; background: transparent; }
+    .sim-range::-moz-range-track { height: 22px; background: transparent; }
+    .sim-range::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; margin-top: 2px;
+      border-radius: 50%; background: #fff; border: 3px solid var(--navy);
+      box-shadow: 0 1px 4px rgba(26,33,80,.35); cursor: grab;
+    }
+    .sim-range::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%; background: #fff;
+      border: 3px solid var(--navy); box-shadow: 0 1px 4px rgba(26,33,80,.35); cursor: grab;
+    }
+    .sim-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(29,127,192,.35); }
+    .sim-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(29,127,192,.35); }
+
+    .sim-legend {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 9.5px; color: var(--text-light); margin-top: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .sim-legend b { display: block; font-weight: 700; color: var(--text-2); }
+    .sim-legend .l-be  b { color: var(--red); }
+    .sim-legend .l-rec { text-align: right; }
+    .sim-legend .l-rec b { color: var(--green); }
+
+    .sim-verdict {
+      margin-top: 10px; padding: 8px 11px; border-radius: var(--r-xs);
+      font-size: 11.5px; font-weight: 600; line-height: 1.4;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-2);
+    }
+    .sim-verdict.v-good { background: var(--green-soft); border-color: var(--green-line); color: #0A7A54; }
+    .sim-verdict.v-warn { background: var(--amber-soft); border-color: var(--amber-line); color: #8A5400; }
+    .sim-verdict.v-bad  { background: var(--red-soft);   border-color: var(--red-line);   color: #A82020; }
+    .sim-verdict b { font-weight: 800; }
+
+    .fee-sim-tag {
+      display: none; font-size: 10px; font-weight: 800; letter-spacing: .5px;
+      text-transform: uppercase; color: var(--amber); margin-top: 4px;
+    }
+    body.simulando .fee-sim-tag { display: block; }
+
     /* ── Plano Básico ── */
     .rp-plano { padding: 14px 22px; border-bottom: 1px solid var(--border); }
     .plano-card {
@@ -1754,8 +1828,35 @@
       <div class="rp-fee">
         <div class="fee-label">Honorário Mensal</div>
         <div class="fee-value" id="rp-fee-val">R$ —</div>
+        <div class="fee-sim-tag">valor simulado</div>
         <div class="fee-range" id="rp-fee-range">Preencha o diagnóstico para calcular</div>
         <div class="fee-flags" id="rp-flags"></div>
+      </div>
+
+      <!-- Simulador de negociação -->
+      <div class="rp-sim" id="rp-sim" style="display:none;">
+        <div class="sim-head">
+          <span class="sim-label">Simular negociação</span>
+          <button type="button" class="sim-reset" id="sim-reset" onclick="resetSimulacao()">voltar ao recomendado</button>
+        </div>
+
+        <div class="sim-wrap">
+          <div class="sim-track">
+            <div class="sim-band" id="sim-band"></div>
+            <div class="sim-fill" id="sim-fill"></div>
+            <div class="sim-tick tick-be"  id="tick-be"></div>
+            <div class="sim-tick tick-rec" id="tick-rec"></div>
+          </div>
+          <input type="range" class="sim-range" id="sim-range" min="0" max="100" step="10" value="0"
+                 aria-label="Simular valor do honorário mensal">
+        </div>
+
+        <div class="sim-legend">
+          <span class="l-be">break-even<b id="leg-be">—</b></span>
+          <span class="l-rec">recomendado<b id="leg-rec">—</b></span>
+        </div>
+
+        <div class="sim-verdict" id="sim-verdict">Arraste para testar valores de negociação.</div>
       </div>
 
       <!-- Plano Básico -->
@@ -2148,6 +2249,7 @@ const state = {
   erp:       'ca',
   erpManual: false,
   printMode: 'interno',
+  simulado:  null,   /* valor arrastado na barra de negociação; null = recomendado */
   last:      null,
 };
 
@@ -2696,59 +2798,165 @@ function computeSetup(v, P, sys, base, custoHora, denomAlvo) {
 /* ═══════════════════════════════════════════════════════════════════════
    RENDERIZAÇÃO DO PAINEL
    ═══════════════════════════════════════════════════════════════════════ */
-function updateUI(R) {
-  const P = R.P;
+/* ═══════════════════════════════════════════════════════════════
+   SIMULAÇÃO DE NEGOCIAÇÃO
 
-  /* ── Honorário ── */
+   `state.simulado` guarda o valor arrastado na barra. Vale null quando
+   se está no valor recomendado. Qualquer alteração no diagnóstico zera
+   a simulação — manter um valor antigo sobre uma base nova induz a erro.
+   ═══════════════════════════════════════════════════════════════ */
+const precoAtual = R => (state.simulado != null ? state.simulado : R.feeIdeal);
+
+/* Margem de um preço qualquer, com a mesma conta do motor. */
+function margemDe(R, preco) {
+  const denomBreak = Math.max(0.05, 1 - R.P.imposto - R.P.inadimplencia);
+  const lucro = preco * denomBreak - R.custoTotal;
+  return { lucro, margem: preco > 0 ? lucro / preco : 0 };
+}
+
+function configurarBarra(R) {
+  const bloco = el('rp-sim');
+  if (!R.hasData) { bloco.style.display = 'none'; return; }
+  bloco.style.display = '';
+
+  /* Deixa arrastar bem abaixo do break-even — prejuízo é permitido,
+     desde que fique gritante na tela. */
+  const min = Math.max(0, Math.floor(Math.min(R.breakEven * 0.6, R.feeIdeal * 0.45) / 10) * 10);
+  const max = Math.ceil(Math.max(R.mercado.max, R.feeIdeal) * 1.45 / 10) * 10;
+
+  const barra = el('sim-range');
+  barra.min = min; barra.max = max; barra.step = 10;
+  barra.value = precoAtual(R);
+
+  const pos = v => clamp((v - min) / (max - min) * 100, 0, 100);
+  el('sim-band').style.left  = pos(R.mercado.min) + '%';
+  el('sim-band').style.width = Math.max(0, pos(R.mercado.max) - pos(R.mercado.min)) + '%';
+  el('tick-be').style.left   = pos(R.breakEven) + '%';
+  el('tick-rec').style.left  = pos(R.feeIdeal) + '%';
+  el('leg-be').textContent   = fmtBRL0(R.breakEven);
+  el('leg-rec').textContent  = fmtBRL0(R.feeIdeal);
+  bloco.dataset.min = min; bloco.dataset.max = max;
+}
+
+function pintarPreco(R) {
+  const P = R.P;
   const feeEl = el('rp-fee-val');
-  if (R.hasData) {
-    feeEl.textContent = fmtBRL0(R.feeIdeal);
-    el('rp-fee-range').innerHTML =
-      `Piso de negociação <b>${fmtBRL0(R.feeFloor)}</b> · Teto <b>${fmtBRL0(R.feeCeil)}</b>`;
-  } else {
+
+  if (!R.hasData) {
     feeEl.textContent = 'R$ —';
     el('rp-fee-range').textContent = 'Preencha o diagnóstico para calcular';
+    el('rp-flags').innerHTML = '';
+    document.body.classList.remove('simulando');
+    return;
   }
+
+  const preco = precoAtual(R);
+  const simulando = state.simulado != null && Math.abs(preco - R.feeIdeal) > 0.5;
+  document.body.classList.toggle('simulando', simulando);
+
+  const { lucro, margem } = margemDe(R, preco);
+
+  feeEl.textContent = fmtBRL0(preco);
+  el('rp-fee-range').innerHTML =
+    `Piso de negociação <b>${fmtBRL0(R.feeFloor)}</b> · Teto <b>${fmtBRL0(R.feeCeil)}</b>`;
   feeEl.classList.remove('fee-updating'); void feeEl.offsetWidth; feeEl.classList.add('fee-updating');
 
   /* ── Selos ── */
   const flags = [];
-  if (R.hasData) {
-    if (R.margem >= P.margem - 0.005)      flags.push(['ff-green','✓ Margem-alvo atingida']);
-    else if (R.margem >= P.margemMin)      flags.push(['ff-amber','⚠ Abaixo da margem-alvo']);
-    else                                    flags.push(['ff-red','✕ Abaixo da margem mínima']);
+  if (margem >= P.margem - 0.005)   flags.push(['ff-green','✓ Margem-alvo atingida']);
+  else if (margem >= P.margemMin)   flags.push(['ff-amber','⚠ Abaixo da margem-alvo']);
+  else if (margem > 0)              flags.push(['ff-red','✕ Abaixo da margem mínima']);
+  else                              flags.push(['ff-red','⛔ Prejuízo']);
 
-    if (R.feeIdeal < R.mercado.min)        flags.push(['ff-blue','↓ Abaixo do mercado — há espaço']);
-    else if (R.feeIdeal > R.mercado.max)   flags.push(['ff-amber','↑ Acima do mercado — justifique valor']);
-    else                                    flags.push(['ff-green','◉ Dentro da faixa de mercado']);
+  if (preco < R.mercado.min)        flags.push(['ff-blue','↓ Abaixo do mercado — há espaço']);
+  else if (preco > R.mercado.max)   flags.push(['ff-amber','↑ Acima do mercado — justifique valor']);
+  else                              flags.push(['ff-green','◉ Dentro da faixa de mercado']);
 
-    if (R.desconto > 0)                    flags.push(['ff-blue', `−${(R.desconto*100).toFixed(0)}% contrato`]);
-    if (R.feeIdeal <= P.piso)              flags.push(['ff-amber','⚑ Piso do escritório aplicado']);
-  }
+  if (R.desconto > 0)               flags.push(['ff-blue', `−${(R.desconto*100).toFixed(0)}% contrato`]);
+  if (preco < P.piso)               flags.push(['ff-amber','⚑ Abaixo do piso do escritório']);
   el('rp-flags').innerHTML = flags.map(([c,t]) => `<span class="fee-flag ${c}">${t}</span>`).join('');
+
+  /* ── Métricas que dependem do preço ── */
+  const taxa = R.hTotal > 0 ? preco / R.hTotal : 0;
+  el('rp-rate').textContent = fmtBRL0(taxa) + '/h';
+  el('rp-rate-sub').textContent =
+    `${taxa < P.rateMin ? 'abaixo do mercado' : taxa > P.rateMax ? 'acima do mercado' : 'dentro da faixa'}`
+    + ` (${fmtBRL0(P.rateMin)}–${fmtBRL0(P.rateMax)})`;
+  el('rp-rate').className = 'm-value ' + (taxa < P.rateMin ? 'warn' : 'good');
+
+  el('rp-margem').textContent = fmtPct(margem * 100);
+  el('rp-margem-sub').textContent = `${fmtBRL0(lucro)}/mês líquido`;
+  el('rp-margem').className = 'm-value ' +
+    (margem >= P.margem - 0.005 ? 'good' : margem >= P.margemMin ? 'warn' : 'bad');
+
+  /* ── Barra e veredito ── */
+  const bloco = el('rp-sim');
+  const min = +bloco.dataset.min || 0, max = +bloco.dataset.max || 1;
+  const pct = clamp((preco - min) / (max - min) * 100, 0, 100);
+  el('sim-fill').style.width = pct + '%';
+  el('sim-fill').style.background =
+    margem <= 0 ? 'var(--red)' : margem < P.margemMin ? 'var(--amber)' : 'var(--green)';
+  if (el('sim-range').value != preco) el('sim-range').value = preco;
+
+  const v = el('sim-verdict');
+  const cabecalho = `<b>${fmtBRL0(preco)}</b> · margem <b>${fmtPct(margem * 100)}</b> · ${fmtBRL0(lucro)}/mês`;
+  let recado, classe;
+
+  if (margem <= 0) {
+    classe = 'v-bad';
+    recado = `Prejuízo de ${fmtBRL0(Math.abs(lucro))} por mês. O break-even é ${fmtBRL0(R.breakEven)} — abaixo disso o escritório paga para trabalhar.`;
+  } else if (preco < R.breakEven * 1.02) {
+    classe = 'v-bad';
+    recado = `Praticamente no break-even. Cobre o custo e os impostos, mas não sobra nada.`;
+  } else if (margem < P.margemMin) {
+    classe = 'v-bad';
+    recado = `Abaixo da margem mínima de ${fmtPct(P.margemMin * 100)}. Só faz sentido com ganho estratégico claro.`;
+  } else if (margem < P.margem) {
+    classe = 'v-warn';
+    recado = `Entre a margem mínima e a alvo. Aceitável em negociação, com justificativa.`;
+  } else if (preco > R.mercado.max) {
+    classe = 'v-warn';
+    recado = `Acima do teto de mercado (${fmtBRL0(R.mercado.max)}). Rentável, mas exige argumentar o diferencial.`;
+  } else {
+    classe = 'v-good';
+    recado = `Margem saudável e preço defensável. Pode fechar.`;
+  }
+  v.className = 'sim-verdict ' + classe;
+  v.innerHTML = cabecalho + '<br>' + recado;
+}
+
+function resetSimulacao() {
+  state.simulado = null;
+  if (state.last) { configurarBarra(state.last); pintarPreco(state.last); }
+}
+
+function onArrastar() {
+  if (!state.last || !state.last.hasData) return;
+  state.simulado = parseFloat(el('sim-range').value) || 0;
+  pintarPreco(state.last);
+}
+
+function updateUI(R) {
+  const P = R.P;
+
+  /* Qualquer mudança no diagnóstico descarta a simulação anterior. */
+  state.simulado = null;
+  configurarBarra(R);
+  pintarPreco(R);
 
   /* ── Plano Básico ── */
   renderPlano(R);
 
-  /* ── Métricas ── */
+  /* ── Métricas ──
+     Taxa efetiva e margem são preenchidas por pintarPreco(), porque
+     dependem do valor simulado. Aqui ficam só as que não dependem. */
   if (R.hasData) {
     el('rp-hours').textContent = fmtH(R.hTotal);
     el('rp-hours-sub').textContent = `${fmtH(R.hOper)} operação + ${fmtH(R.hSup + R.hReun)} sênior`;
 
-    el('rp-rate').textContent = fmtBRL0(R.effRate) + '/h';
-    const pos = R.effRate < P.rateMin ? 'abaixo do mercado'
-              : R.effRate > P.rateMax ? 'acima do mercado' : 'dentro da faixa';
-    el('rp-rate-sub').textContent = `${pos} (${fmtBRL0(P.rateMin)}–${fmtBRL0(P.rateMax)})`;
-    el('rp-rate').className = 'm-value ' + (R.effRate < P.rateMin ? 'warn' : 'good');
-
     el('rp-tier').textContent = TIERS[R.base].label;
     el('rp-tier-sub').textContent = `custo ${fmtBRL0(R.custoHora[R.base])}/h produtiva`;
     el('rp-tier').className = 'm-value';
-
-    el('rp-margem').textContent = fmtPct(R.margem * 100);
-    el('rp-margem-sub').textContent = `${fmtBRL0(R.lucro)}/mês líquido`;
-    el('rp-margem').className = 'm-value ' +
-      (R.margem >= P.margem - 0.005 ? 'good' : R.margem >= P.margemMin ? 'warn' : 'bad');
   } else {
     ['rp-hours','rp-rate','rp-tier','rp-margem'].forEach(id => { el(id).textContent = '—'; el(id).className = 'm-value'; });
     el('rp-hours-sub').textContent = 'operação + supervisão';
@@ -3047,6 +3255,7 @@ function maskCNPJ(e) {
 function bindCalcListeners() {
   document.querySelectorAll('input, select, textarea').forEach(e => {
     if (e.id === 'cnpj') return;
+    if (e.id === 'sim-range') return;            /* a barra simula, não recalcula */
     if (e.dataset.mask === 'currency') return;   /* já tratado na máscara */
     e.addEventListener('input',  calculate);
     e.addEventListener('change', calculate);
@@ -3054,6 +3263,7 @@ function bindCalcListeners() {
   el('regime').addEventListener('change', onRegimeChange);
   el('tipo-avaliacao').addEventListener('change', onTipoChange);
   el('erp-licenca').addEventListener('change', onLicencaChange);
+  el('sim-range').addEventListener('input', onArrastar);
   el('p-ocupacao').addEventListener('input', renderCostTable);
 }
 
@@ -3245,8 +3455,13 @@ function populatePrint(R) {
   el('pp-obs').textContent = obs;
   el('pp-obs-wrap').style.display = obs ? 'block' : 'none';
 
-  /* Honorário */
-  el('pp-fee').textContent = fmtBRL0(R.feeIdeal);
+  /* Honorário — usa o valor simulado, se houver. Foi decisão do usuário
+     arrastar a barra, então é esse o valor que vai para a proposta. */
+  const precoImp = precoAtual(R);
+  const simImp   = Math.abs(precoImp - R.feeIdeal) > 0.5;
+  const margImp  = margemDe(R, precoImp);
+
+  el('pp-fee').textContent = fmtBRL0(precoImp);
   el('pp-range').textContent = cli
     ? `Contrato ${optText('contrato').split('—')[0].trim().toLowerCase()} · ${fmtH(R.hTotal)} de dedicação mensal`
     : `Piso ${fmtBRL0(R.feeFloor)} · Teto ${fmtBRL0(R.feeCeil)} · Mercado ${fmtBRL0(R.mercado.min)}–${fmtBRL0(R.mercado.max)}`;
@@ -3261,7 +3476,7 @@ function populatePrint(R) {
 
   /* Métricas */
   el('pp-hours').textContent = fmtH(R.hTotal);
-  el('pp-rate').textContent  = fmtBRL0(R.effRate);
+  el('pp-rate').textContent  = fmtBRL0(R.hTotal > 0 ? precoImp / R.hTotal : 0);
   el('pp-cx').textContent    = el('cx-txt').textContent;
 
   /* Rentabilidade (interno) */
@@ -3270,11 +3485,13 @@ function populatePrint(R) {
     [`Overhead / estrutura (${(P.overhead*100).toFixed(0)}%)`, fmtBRL(R.custoDireto*P.overhead)],
     ...(P.licenca > 0 ? [['Licença do sistema', fmtBRL(P.licenca)]] : []),
     ['Custo total do cliente', fmtBRL(R.custoTotal)],
-    [`Impostos + inadimplência (${((P.imposto+P.inadimplencia)*100).toFixed(1)}%)`, fmtBRL(R.feeIdeal*(P.imposto+P.inadimplencia))],
+    [`Impostos + inadimplência (${((P.imposto+P.inadimplencia)*100).toFixed(1)}%)`, fmtBRL(precoImp*(P.imposto+P.inadimplencia))],
     ['Break-even', fmtBRL(R.breakEven)],
-    ['Lucro líquido mensal', fmtBRL(R.lucro)],
+    ...(simImp ? [['Honorário recomendado', fmtBRL(R.feeIdeal) + ' · margem ' + fmtPct(R.margem*100)]] : []),
+    ...(simImp ? [['Honorário praticado', fmtBRL(precoImp)]] : []),
+    ['Lucro líquido mensal', fmtBRL(margImp.lucro)],
   ].map(([k,x]) => `<tr><td>${k}</td><td>${x}</td></tr>`).join('') +
-   `<tr><td class="strong">Margem do contrato</td><td class="${R.margem>=P.margem?'pp-margin-good':R.margem>=P.margemMin?'pp-margin-warn':'pp-margin-bad'}">${fmtPct(R.margem*100)}</td></tr>`;
+   `<tr><td class="strong">Margem do contrato</td><td class="${margImp.margem>=P.margem?'pp-margin-good':margImp.margem>=P.margemMin?'pp-margin-warn':'pp-margin-bad'}">${fmtPct(margImp.margem*100)}</td></tr>`;
 
   /* Alocação (interno) */
   el('pp-alloc-body').innerHTML = TIER_ORDER.filter(k => R.alloc[k] > 0.01).map(k =>
@@ -3315,6 +3532,9 @@ function doCopy() {
   const R = state.last || calculate();
   if (!R.hasData) { toast('Preencha o diagnóstico antes de copiar.'); return; }
   const P = R.P;
+  const pCopia   = precoAtual(R);
+  const simCopia = Math.abs(pCopia - R.feeIdeal) > 0.5;
+  const mCopia   = margemDe(R, pCopia);
   const optText = id => { const e = el(id); return e.options[e.selectedIndex]?.text || '—'; };
   const L = [
     '═══════════════════════════════════════',
@@ -3331,15 +3551,16 @@ function doCopy() {
     `Complexidade    : ${el('cx-txt').textContent} (${R.cx.score}/100)`,
     `Horas/mês       : ${fmtH(R.hTotal)}`,
     `Nível indicado  : ${TIERS[R.base].label}`,
-    `Taxa efetiva    : ${fmtBRL0(R.effRate)}/h`,
+    `Taxa efetiva    : ${fmtBRL0(R.hTotal > 0 ? pCopia / R.hTotal : 0)}/h`,
     '',
     '── ECONOMIA DO CONTRATO ───────────────',
     `Custo total     : ${fmtBRL(R.custoTotal)}`,
     `Break-even      : ${fmtBRL0(R.breakEven)}`,
     `Mercado         : ${fmtBRL0(R.mercado.min)} — ${fmtBRL0(R.mercado.max)}`,
-    `Margem          : ${fmtPct(R.margem*100)} (${fmtBRL0(R.lucro)}/mês)`,
+    `Margem          : ${fmtPct(mCopia.margem*100)} (${fmtBRL0(mCopia.lucro)}/mês)`,
     '',
-    `▶ HONORÁRIO MENSAL: ${fmtBRL0(R.feeIdeal)}`,
+    `▶ HONORÁRIO MENSAL: ${fmtBRL0(pCopia)}`,
+    simCopia ? `  (recomendado: ${fmtBRL0(R.feeIdeal)} — valor ajustado em negociação)` : '',
     `  Piso de negociação: ${fmtBRL0(R.feeFloor)}`,
     R.setup.ativo && R.setup.horas > 0 && P.cobraSetup === 'sim'
       ? `▶ IMPLANTAÇÃO: ${fmtBRL0(R.setup.preco)} (${fmtH(R.setup.horas)})` : '',
