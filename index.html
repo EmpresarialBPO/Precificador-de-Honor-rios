@@ -1,0 +1,3426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Precificador de Honorários — Empresarial BPO Financeiro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       PRECIFICADOR DE HONORÁRIOS — EMPRESARIAL BPO FINANCEIRO
+       Modelo: Esforço (horas) → Custo interno (por nível) → Margem → Preço
+               validado contra a faixa de mercado de BH (R$ 80–120/h)
+       ══════════════════════════════════════════════════════════════════ */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* ── Marca (extraída da logo) ───────────────── */
+      --navy:        #27306D;
+      --navy-deep:   #1A2150;
+      --navy-mid:    #333E8A;
+      --navy-soft:   #E9EBF5;
+      --navy-tint:   #F4F5FA;
+
+      --blue:        #1D7FC0;
+      --blue-deep:   #14639A;
+      --blue-soft:   #E4F1FA;
+      --blue-tint:   #F2F8FD;
+      --blue-line:   #B9DBF1;
+
+      /* ── Semânticas ─────────────────────────────── */
+      --green:       #0E9F6E;
+      --green-soft:  #E6F7F1;
+      --green-line:  #A7E8D1;
+      --amber:       #C77700;
+      --amber-soft:  #FFF6E5;
+      --amber-line:  #F5D9A0;
+      --red:         #D93A3A;
+      --red-soft:    #FDEDED;
+      --red-line:    #F5B5B5;
+      --violet:      #6C4BC1;
+      --violet-soft: #F0EBFB;
+
+      /* ── Neutros ────────────────────────────────── */
+      --bg:          #EEF1F7;
+      --surface:     #FFFFFF;
+      --surface-2:   #F7F9FC;
+      --surface-3:   #EFF3F8;
+      --border:      #E1E7F0;
+      --border-2:    #C8D2E0;
+      --text:        #131A33;
+      --text-2:      #3A455E;
+      --text-muted:  #6B7794;
+      --text-light:  #97A2B8;
+
+      --shadow-sm: 0 1px 2px rgba(26,33,80,.06), 0 1px 3px rgba(26,33,80,.05);
+      --shadow-md: 0 2px 4px rgba(26,33,80,.05), 0 4px 10px -2px rgba(26,33,80,.08);
+      --shadow-lg: 0 4px 8px -2px rgba(26,33,80,.07), 0 12px 24px -6px rgba(26,33,80,.12);
+      --shadow-xl: 0 8px 16px -4px rgba(26,33,80,.08), 0 24px 40px -12px rgba(26,33,80,.16);
+
+      --r:    12px;
+      --r-sm:  8px;
+      --r-xs:  6px;
+      --r-lg: 16px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* ─── Header ────────────────────────────────────────────────────── */
+    .app-header {
+      background: var(--surface);
+      padding: 0 clamp(14px, 2vw, 44px);
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 300;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 12px rgba(26,33,80,.06);
+    }
+
+    .header-brand { display: flex; align-items: center; gap: 18px; }
+    .header-logo-img { height: 42px; width: auto; object-fit: contain; display: block; }
+    .header-divider { width: 1px; height: 34px; background: var(--border); }
+
+    .header-brand-text h1 {
+      font-size: 14px; font-weight: 700; color: var(--navy);
+      letter-spacing: -.25px; line-height: 1.2;
+    }
+    .header-brand-text p { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+    .header-right { display: flex; align-items: center; gap: 12px; }
+
+    .header-badge {
+      background: var(--blue-soft);
+      border: 1px solid var(--blue-line);
+      color: var(--blue-deep);
+      padding: 5px 13px; border-radius: 20px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .6px; text-transform: uppercase;
+    }
+    .header-version { font-size: 10.5px; color: var(--text-light); font-weight: 500; }
+
+    /* ─── Layout ─────────────────────────────────────────────────────── */
+    /* Layout fluido: ocupa toda a largura disponível, seja qual for a tela.
+       A margem lateral cresce junto com o monitor via clamp, para o conteúdo
+       nunca encostar na borda nem ficar espremido no notebook. O painel de
+       resultado acompanha em proporção, em vez de ficar preso a uma largura
+       fixa que desequilibra em tela larga. */
+    .app-wrap {
+      width: 100%; margin: 0;
+      padding: 24px clamp(14px, 2vw, 44px) 64px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(370px, 25vw, 520px);
+      gap: clamp(16px, 1.6vw, 30px); align-items: start;
+    }
+    .form-column { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+    /* ─── Card ───────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 15px 22px 13px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+      position: relative;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    }
+    .card-head::before {
+      content: ''; position: absolute; left: 0; top: 12px; bottom: 12px;
+      width: 3px; background: var(--blue); border-radius: 0 3px 3px 0;
+    }
+
+    .card-step {
+      width: 26px; height: 26px; border-radius: 8px;
+      background: var(--navy); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11.5px; font-weight: 800; flex-shrink: 0;
+      letter-spacing: -.3px;
+    }
+
+    .card-icon {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .ci-navy   { background: var(--navy-soft); }
+    .ci-blue   { background: var(--blue-soft); }
+    .ci-green  { background: var(--green-soft); }
+    .ci-amber  { background: var(--amber-soft); }
+    .ci-violet { background: var(--violet-soft); }
+    .ci-slate  { background: var(--surface-3); }
+
+    .card-head-info { flex: 1; min-width: 0; }
+    .card-head-info h3 {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      letter-spacing: -.2px;
+    }
+    .card-head-info p { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+    .card-body { padding: 20px 22px; }
+
+    /* Colapsável */
+    .card.collapsible .card-head { cursor: pointer; user-select: none; }
+    .card-toggle {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: var(--surface-3); color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; flex-shrink: 0; transition: transform .2s, background .15s;
+    }
+    .card.collapsed .card-body { display: none; }
+    .card.collapsed .card-toggle { transform: rotate(-90deg); }
+
+    /* ─── Grid helpers ───────────────────────────────────────────────── */
+    .g  { display: grid; gap: 13px; }
+    .g2 { grid-template-columns: 1fr 1fr; }
+    .g3 { grid-template-columns: 1fr 1fr 1fr; }
+    .g4 { grid-template-columns: repeat(4, 1fr); }
+    .span2 { grid-column: span 2; }
+    .span3 { grid-column: span 3; }
+
+    /* ─── Form controls ──────────────────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+
+    .label {
+      font-size: 11.5px; font-weight: 600; color: var(--text-2);
+      letter-spacing: .05px; display: flex; align-items: center; gap: 5px;
+    }
+    .label .opt { font-weight: 400; color: var(--text-light); font-size: 10.5px; }
+
+    .tip {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--surface-3); color: var(--text-muted);
+      font-size: 9px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: help; position: relative; flex-shrink: 0;
+    }
+    .tip:hover { background: var(--blue-soft); color: var(--blue-deep); }
+    .tip:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 7px); left: 50%;
+      transform: translateX(-50%);
+      background: var(--navy-deep); color: #fff;
+      padding: 8px 11px; border-radius: 7px;
+      font-size: 11px; font-weight: 400; line-height: 1.45;
+      white-space: normal; text-align: left;
+      width: max-content; max-width: 250px;
+      pointer-events: none; z-index: 90;
+      box-shadow: var(--shadow-lg);
+    }
+
+    input[type="text"], input[type="number"], select, textarea {
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13.5px; font-family: inherit;
+      color: var(--text); background: var(--surface);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none; width: 100%;
+      appearance: none; -webkit-appearance: none;
+    }
+    textarea { resize: vertical; min-height: 58px; line-height: 1.5; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7794' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 11px center;
+      padding-right: 32px; cursor: pointer;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(29,127,192,.14);
+    }
+    input:disabled { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+
+    .hint { font-size: 10.5px; color: var(--text-light); line-height: 1.4; }
+    .hint.ok  { color: var(--green); }
+    .hint.err { color: var(--red); }
+
+    .pfx { position: relative; }
+    .pfx .pfx-label {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      font-size: 11.5px; font-weight: 600; color: var(--text-light);
+      pointer-events: none; user-select: none;
+    }
+    .pfx input { padding-left: 32px; }
+    .sfx { position: relative; }
+    .sfx .sfx-label {
+      position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+      font-size: 11.5px; font-weight: 600; color: var(--text-light);
+      pointer-events: none; user-select: none;
+    }
+    .sfx input { padding-right: 30px; }
+
+    /* ─── Buttons ─────────────────────────────────────────────────────── */
+    .btn {
+      padding: 9px 17px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; border: none; transition: all .15s;
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 7px; user-select: none; white-space: nowrap;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-deep) 100%);
+      color: #fff; box-shadow: 0 2px 6px rgba(29,127,192,.28);
+    }
+    .btn-primary:not(:disabled):hover {
+      box-shadow: 0 4px 12px rgba(29,127,192,.38); transform: translateY(-1px);
+    }
+    .btn-navy {
+      background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy-deep) 100%);
+      color: #fff; box-shadow: 0 2px 6px rgba(26,33,80,.24);
+    }
+    .btn-navy:not(:disabled):hover {
+      box-shadow: 0 4px 14px rgba(26,33,80,.34); transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: transparent; color: var(--blue-deep);
+      border: 1.5px solid var(--blue-line);
+    }
+    .btn-outline:hover { background: var(--blue-tint); border-color: var(--blue); }
+    .btn-ghost {
+      background: transparent; color: var(--text-muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface-2); color: var(--text-2); border-color: var(--border-2); }
+    .btn-full { width: 100%; }
+    .btn-sm   { padding: 7px 12px; font-size: 11.5px; }
+
+    .spin {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+      border-radius: 50%; animation: spin .65s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .cnpj-row { display: grid; grid-template-columns: 1fr auto; gap: 9px; align-items: end; }
+
+    /* ─── Company banner ──────────────────────────────────────────────── */
+    .company-banner {
+      display: none;
+      background: linear-gradient(135deg, var(--blue-tint) 0%, var(--navy-tint) 100%);
+      border: 1.5px solid var(--blue-line);
+      border-radius: var(--r-sm);
+      padding: 14px 16px; gap: 13px; align-items: flex-start;
+    }
+    .company-banner.show { display: flex; animation: fadeIn .25s ease; }
+    .company-banner-avatar {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .company-banner-body { min-width: 0; }
+    .company-banner-body h4 { font-size: 13.5px; font-weight: 700; color: var(--navy); line-height: 1.3; }
+    .company-banner-body p  { font-size: 11px; color: var(--blue-deep); margin-top: 2px; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .tag { padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+    .tag-navy  { background: var(--navy-soft);  color: var(--navy); }
+    .tag-blue  { background: var(--blue-soft);  color: var(--blue-deep); }
+    .tag-green { background: var(--green-soft); color: #0A7A54; }
+    .tag-slate { background: var(--surface-3);  color: var(--text-2); }
+
+    /* ─── Info boxes ──────────────────────────────────────────────────── */
+    .info-box {
+      border-radius: var(--r-sm); padding: 10px 13px;
+      font-size: 11.5px; line-height: 1.5;
+      display: flex; gap: 9px; align-items: flex-start;
+    }
+    .info-box strong { font-weight: 700; }
+    .ib-blue  { background: var(--blue-tint);  border: 1px solid var(--blue-line);  color: #0F5580; }
+    .ib-navy  { background: var(--navy-tint);  border: 1px solid #D5D9EC;           color: var(--navy); }
+    .ib-amber { background: var(--amber-soft); border: 1px solid var(--amber-line); color: #8A5400; }
+    .ib-green { background: var(--green-soft); border: 1px solid var(--green-line); color: #0A6B4B; }
+    .ib-slate { background: var(--surface-2);  border: 1px solid var(--border);     color: var(--text-2); }
+    .info-box.hidden { display: none; }
+    .mb-14 { margin-bottom: 14px; }
+    .mt-14 { margin-top: 14px; }
+    .mt-10 { margin-top: 10px; }
+
+    /* ─── Checklist de necessidades (ERP) ─────────────────────────────── */
+    .need-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .need-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 11px;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      background: var(--surface); cursor: pointer;
+      transition: all .14s; user-select: none;
+    }
+    .need-item:hover { border-color: var(--blue-line); background: var(--blue-tint); }
+    .need-item.on { border-color: var(--blue); background: var(--blue-tint); box-shadow: 0 0 0 2.5px rgba(29,127,192,.11); }
+    .need-check {
+      width: 17px; height: 17px; border-radius: 5px;
+      border: 2px solid var(--border-2); background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; flex-shrink: 0; transition: all .14s; color: #fff;
+    }
+    .need-item.on .need-check { background: var(--blue); border-color: var(--blue); }
+    .need-label { font-size: 11.5px; font-weight: 500; color: var(--text-2); line-height: 1.35; }
+    .need-item.on .need-label { color: var(--navy); font-weight: 600; }
+
+    /* ─── Recomendação de ERP ─────────────────────────────────────────── */
+    .erp-verdict {
+      margin-top: 14px;
+      border: 1.5px solid var(--border); border-radius: var(--r);
+      overflow: hidden; background: var(--surface-2);
+    }
+    .erp-verdict-head {
+      padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      color: #fff;
+    }
+    .erp-verdict-head .evh-ico {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .erp-verdict-head .evh-txt { flex: 1; min-width: 0; }
+    .erp-verdict-head .evh-label {
+      font-size: 9.5px; text-transform: uppercase; letter-spacing: .8px;
+      color: rgba(255,255,255,.55); font-weight: 700;
+    }
+    .erp-verdict-head .evh-name { font-size: 16px; font-weight: 800; letter-spacing: -.3px; margin-top: 1px; }
+    .erp-verdict-body { padding: 13px 16px; }
+
+    .erp-bars { display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; }
+    .erp-bar-row { display: grid; grid-template-columns: 92px 1fr 34px; gap: 10px; align-items: center; }
+    .erp-bar-name { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
+    .erp-bar-track { height: 8px; background: var(--surface-3); border-radius: 5px; overflow: hidden; }
+    .erp-bar-fill { height: 100%; border-radius: 5px; transition: width .45s cubic-bezier(.4,0,.2,1); }
+    .erp-bar-fill.ca   { background: linear-gradient(90deg, var(--blue) 0%, var(--blue-deep) 100%); }
+    .erp-bar-fill.omie { background: linear-gradient(90deg, var(--violet) 0%, #4E31A0 100%); }
+    .erp-bar-val { font-size: 11.5px; font-weight: 800; color: var(--navy); text-align: right; }
+
+    .erp-reasons { display: flex; flex-direction: column; gap: 5px; }
+    .erp-reason {
+      font-size: 11px; color: var(--text-2); line-height: 1.45;
+      display: flex; gap: 7px; align-items: flex-start;
+    }
+    .erp-reason .er-ico { flex-shrink: 0; font-size: 10px; margin-top: 1px; }
+
+    .erp-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 13px; }
+    .erp-opt {
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      padding: 12px 13px; cursor: pointer; transition: all .15s;
+      background: var(--surface); position: relative; user-select: none;
+    }
+    .erp-opt:hover { border-color: var(--border-2); }
+    .erp-opt.on { border-color: var(--blue); background: var(--blue-tint); box-shadow: 0 0 0 3px rgba(29,127,192,.11); }
+    .erp-opt.on.omie { border-color: var(--violet); background: var(--violet-soft); box-shadow: 0 0 0 3px rgba(108,75,193,.11); }
+    .erp-opt-name { font-size: 13.5px; font-weight: 800; color: var(--text); letter-spacing: -.2px; }
+    .erp-opt-desc { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+    .erp-opt-flag {
+      position: absolute; top: 9px; right: 10px;
+      font-size: 8.5px; font-weight: 800; letter-spacing: .5px;
+      padding: 2px 7px; border-radius: 9px; text-transform: uppercase;
+      background: var(--green-soft); color: #0A7A54; border: 1px solid var(--green-line);
+      display: none;
+    }
+    .erp-opt.recommended .erp-opt-flag { display: block; }
+
+    /* ─── Platform grid ───────────────────────────────────────────────── */
+    .platform-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 1fr)); gap: 8px;
+    }
+    .plat-card {
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      padding: 11px 11px 9px; cursor: pointer; transition: all .15s;
+      position: relative; user-select: none; background: var(--surface);
+    }
+    .plat-card:hover { border-color: var(--blue-line); background: var(--blue-tint); }
+    .plat-card.on { border-color: var(--blue); background: var(--blue-tint); box-shadow: 0 0 0 3px rgba(29,127,192,.11); }
+    .plat-check {
+      position: absolute; top: 8px; right: 8px;
+      width: 17px; height: 17px; border-radius: 50%;
+      border: 2px solid var(--border-2); background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8.5px; transition: all .15s; color: #fff;
+    }
+    .plat-card.on .plat-check { background: var(--blue); border-color: var(--blue); }
+    .plat-icon { font-size: 19px; display: block; margin-bottom: 5px; }
+    .plat-name { font-size: 12px; font-weight: 600; color: var(--text); display: block; }
+    .plat-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 9px;
+      display: inline-flex; align-items: center; gap: 3px; margin-top: 5px;
+      letter-spacing: .2px;
+    }
+    .badge-nativo { background: var(--green-soft); color: #0A7A54; border: 1px solid var(--green-line); }
+    .badge-app    { background: var(--blue-soft);  color: var(--blue-deep); border: 1px solid var(--blue-line); }
+    .badge-manual { background: var(--amber-soft); color: #8A5400; border: 1px solid var(--amber-line); }
+
+    /* ─── Account rows ────────────────────────────────────────────────── */
+    .acct-table { display: flex; flex-direction: column; gap: 7px; }
+    .acct-header { display: grid; grid-template-columns: 1fr 126px 1fr; gap: 11px; padding: 0 13px; }
+    .acct-header span {
+      font-size: 10px; font-weight: 700; color: var(--text-light);
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .acct-row {
+      display: grid; grid-template-columns: 1fr 126px 1fr; gap: 11px; align-items: center;
+      padding: 10px 13px; border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      background: var(--surface-2); transition: all .15s;
+    }
+    .acct-row:hover { border-color: var(--blue-line); background: var(--blue-tint); }
+    .acct-row.active { border-color: var(--blue-line); background: var(--blue-tint); }
+    .acct-label { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .acct-ico  { font-size: 17px; flex-shrink: 0; }
+    .acct-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+    .acct-sub  { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
+
+    .qty {
+      display: flex; align-items: center;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      overflow: hidden; background: #fff; height: 36px;
+    }
+    .qty-btn {
+      width: 30px; height: 100%; background: var(--surface-2); border: none; cursor: pointer;
+      font-size: 16px; line-height: 1; color: var(--text-muted);
+      transition: background .1s, color .1s; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-family: inherit;
+    }
+    .qty-btn:hover { background: var(--blue); color: #fff; }
+    .qty-num {
+      width: 42px; text-align: center; border: none; outline: none;
+      font-size: 13.5px; font-weight: 700; font-family: inherit; color: var(--navy);
+      padding: 0; background: transparent;
+    }
+    .qty-num::-webkit-outer-spin-button, .qty-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .qty-num[type=number] { -moz-appearance: textfield; }
+
+    /* ─── Service toggles ─────────────────────────────────────────────── */
+    .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .svc-card {
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      padding: 11px 12px; cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; gap: 10px;
+      user-select: none; position: relative; background: var(--surface);
+    }
+    .svc-card:hover { border-color: var(--blue-line); background: var(--blue-tint); }
+    .svc-card.on { border-color: var(--blue); background: var(--blue-tint); box-shadow: 0 0 0 3px rgba(29,127,192,.11); }
+    .svc-card.adv.on { border-color: var(--violet); background: var(--violet-soft); box-shadow: 0 0 0 3px rgba(108,75,193,.11); }
+    .svc-icon { font-size: 18px; flex-shrink: 0; }
+    .svc-body { flex: 1; min-width: 0; }
+    .svc-title { font-size: 12px; font-weight: 600; color: var(--text); }
+    .svc-desc  { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; line-height: 1.35; }
+    .svc-check {
+      width: 17px; height: 17px; border-radius: 5px;
+      border: 2px solid var(--border-2); background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8.5px; flex-shrink: 0; transition: all .15s; color: #fff;
+    }
+    .svc-card.on .svc-check { background: var(--blue); border-color: var(--blue); }
+    .svc-card.adv.on .svc-check { background: var(--violet); border-color: var(--violet); }
+    .adv-badge {
+      position: absolute; top: 5px; right: 5px;
+      background: var(--violet-soft); border: 1px solid #D9CDF3; color: #5B3BA8;
+      font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 7px; letter-spacing: .3px;
+    }
+
+    /* ─── Painel de parâmetros ────────────────────────────────────────── */
+    .param-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .param-note {
+      font-size: 10.5px; color: var(--text-light);
+      margin-top: 3px; line-height: 1.35;
+    }
+    .param-sep {
+      grid-column: 1 / -1;
+      font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
+      color: var(--text-light); padding-top: 6px;
+      border-top: 1px dashed var(--border); margin-top: 2px;
+    }
+    .cost-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .cost-table th {
+      font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text-light); text-align: right; padding: 0 0 7px; border-bottom: 1px solid var(--border);
+    }
+    .cost-table th:first-child { text-align: left; }
+    .cost-table td { font-size: 12px; padding: 7px 0; border-bottom: 1px solid var(--surface-3); text-align: right; }
+    .cost-table td:first-child { text-align: left; font-weight: 600; color: var(--text-2); }
+    .cost-table td.num { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--navy); }
+    .cost-table tr:last-child td { border-bottom: none; }
+    .lvl-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 700;
+    }
+    .lvl-basico   { background: var(--green-soft); color: #0A7A54; }
+    .lvl-interm   { background: var(--blue-soft);  color: var(--blue-deep); }
+    .lvl-avancado { background: var(--violet-soft); color: #5B3BA8; }
+  </style>
+  <style>
+    /* ═══ RESULT PANEL ════════════════════════════════════════════════ */
+    .result-panel {
+      position: sticky; top: 92px;
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      max-height: calc(100vh - 112px);
+      display: flex; flex-direction: column;
+    }
+    .rp-scroll { overflow-y: auto; flex: 1; }
+    .rp-scroll::-webkit-scrollbar { width: 7px; }
+    .rp-scroll::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+    .rp-scroll::-webkit-scrollbar-track { background: var(--surface-2); }
+
+    .rp-header {
+      background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 55%, var(--blue-deep) 130%);
+      padding: 16px 22px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .rp-header h2 { font-size: 13.5px; font-weight: 700; color: #fff; letter-spacing: -.2px; }
+    .rp-header p  { font-size: 10.5px; color: rgba(255,255,255,.5); margin-top: 2px; }
+    .rp-live {
+      font-size: 9px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
+      color: #6EE7B7; background: rgba(110,231,183,.12); border: 1px solid rgba(110,231,183,.3);
+      padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── Honorário ── */
+    .rp-fee { padding: 20px 22px 18px; border-bottom: 1px solid var(--border); text-align: center; }
+    .fee-label {
+      font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-light);
+    }
+    .fee-value {
+      font-size: 38px; font-weight: 900; color: var(--navy);
+      letter-spacing: -1.8px; line-height: 1; margin: 7px 0 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .fee-range { font-size: 11px; color: var(--text-muted); }
+    .fee-range b { font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .fee-flags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 9px; }
+    .fee-flag {
+      font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .ff-green { background: var(--green-soft); color: #0A7A54; border: 1px solid var(--green-line); }
+    .ff-amber { background: var(--amber-soft); color: #8A5400; border: 1px solid var(--amber-line); }
+    .ff-red   { background: var(--red-soft);   color: #A82020; border: 1px solid var(--red-line); }
+    .ff-blue  { background: var(--blue-soft);  color: var(--blue-deep); border: 1px solid var(--blue-line); }
+
+    /* ── Plano Básico ── */
+    .rp-plano { padding: 14px 22px; border-bottom: 1px solid var(--border); }
+    .plano-card {
+      border-radius: var(--r-sm); padding: 12px 14px;
+      border: 1.5px solid var(--border); background: var(--surface-2);
+      transition: all .25s;
+    }
+    .plano-card.apto     { border-color: var(--green-line); background: var(--green-soft); }
+    .plano-card.limite   { border-color: var(--amber-line); background: var(--amber-soft); }
+    .plano-card.fora     { border-color: var(--border-2);   background: var(--surface-2); }
+    .plano-head { display: flex; align-items: center; gap: 10px; }
+    .plano-ico { font-size: 20px; flex-shrink: 0; }
+    .plano-txt { flex: 1; min-width: 0; }
+    .plano-title { font-size: 12.5px; font-weight: 800; letter-spacing: -.1px; }
+    .plano-card.apto   .plano-title { color: #0A7A54; }
+    .plano-card.limite .plano-title { color: #8A5400; }
+    .plano-card.fora   .plano-title { color: var(--text-muted); }
+    .plano-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+    .plano-val {
+      font-size: 15px; font-weight: 900; letter-spacing: -.4px;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .plano-card.apto   .plano-val { color: #0A7A54; }
+    .plano-card.limite .plano-val { color: #8A5400; }
+    .plano-card.fora   .plano-val { color: var(--text-light); text-decoration: line-through; }
+
+    .plano-crit { margin-top: 10px; border-top: 1px dashed rgba(0,0,0,.09); padding-top: 9px; display: none; }
+    .plano-crit.show { display: block; }
+    .pc-row {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 10.5px; padding: 2.5px 0; line-height: 1.35;
+    }
+    .pc-ico { flex-shrink: 0; font-size: 9px; width: 12px; }
+    .pc-name { flex: 1; color: var(--text-2); }
+    .pc-val { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-2); }
+    .pc-row.fail .pc-name, .pc-row.fail .pc-val { color: #A82020; }
+    .plano-toggle {
+      font-size: 10px; font-weight: 700; color: var(--text-muted);
+      background: none; border: none; cursor: pointer; padding: 6px 0 0;
+      font-family: inherit; text-decoration: underline; text-underline-offset: 2px;
+    }
+    .plano-toggle:hover { color: var(--navy); }
+
+    /* ── Métricas ── */
+    .rp-metrics { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border); }
+    .rp-metric { padding: 12px 16px; text-align: center; }
+    .rp-metric:nth-child(odd) { border-right: 1px solid var(--border); }
+    .rp-metric:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+    .m-label { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+    .m-value {
+      font-size: 15.5px; font-weight: 800; color: var(--navy);
+      margin-top: 3px; letter-spacing: -.4px; font-variant-numeric: tabular-nums;
+    }
+    .m-value.good { color: var(--green); }
+    .m-value.warn { color: var(--amber); }
+    .m-value.bad  { color: var(--red); }
+    .m-sub { font-size: 9.5px; color: var(--text-light); margin-top: 1px; }
+
+    /* ── Cruzamento custo × mercado ── */
+    .rp-section { padding: 14px 22px; border-bottom: 1px solid var(--border); }
+    .rp-section h4 {
+      font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .7px; color: var(--text-light); margin-bottom: 11px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .rp-section h4 .h4-side { text-transform: none; letter-spacing: 0; font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+    .scale-row { display: grid; grid-template-columns: 108px 1fr 76px; gap: 9px; align-items: center; margin-bottom: 8px; }
+    .scale-name { font-size: 10.5px; color: var(--text-2); font-weight: 600; line-height: 1.25; }
+    .scale-name small { display: block; font-size: 9px; color: var(--text-light); font-weight: 500; }
+    .scale-track { height: 9px; background: var(--surface-3); border-radius: 5px; overflow: hidden; position: relative; }
+    .scale-fill { height: 100%; border-radius: 5px; transition: width .45s cubic-bezier(.4,0,.2,1); }
+    .sf-cost   { background: linear-gradient(90deg, #94A3B8, #64748B); }
+    .sf-break  { background: linear-gradient(90deg, var(--red), #B02A2A); }
+    .sf-market { background: linear-gradient(90deg, var(--amber), #A66200); }
+    .sf-target { background: linear-gradient(90deg, var(--blue), var(--blue-deep)); }
+    .sf-final  { background: linear-gradient(90deg, var(--green), #0A7A54); }
+    .scale-val {
+      font-size: 11px; font-weight: 800; color: var(--navy);
+      text-align: right; font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Alocação de equipe ── */
+    .alloc-list { display: flex; flex-direction: column; gap: 7px; }
+    .alloc-row {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: var(--r-xs);
+      background: var(--surface-2); border: 1px solid var(--border);
+    }
+    .alloc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .ad-basico   { background: var(--green); }
+    .ad-interm   { background: var(--blue); }
+    .ad-avancado { background: var(--violet); }
+    .alloc-name { flex: 1; font-size: 11.5px; font-weight: 600; color: var(--text-2); }
+    .alloc-hrs  { font-size: 11.5px; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+    .alloc-cost { font-size: 10px; color: var(--text-light); font-variant-numeric: tabular-nums; min-width: 62px; text-align: right; }
+
+    /* ── Complexidade ── */
+    .rp-complexity { padding: 14px 22px; border-bottom: 1px solid var(--border); background: var(--navy-tint); }
+    .cx-label {
+      font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px;
+      color: var(--text-light); margin-bottom: 9px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .cx-level-text { font-weight: 800; color: var(--navy); text-transform: none; font-size: 11.5px; letter-spacing: 0; }
+    .cx-dots { display: flex; gap: 4px; }
+    .cx-dot { flex: 1; height: 7px; border-radius: 4px; background: var(--border); transition: background .35s ease; }
+    .cx-dot.l { background: var(--green); }
+    .cx-dot.m { background: var(--blue); }
+    .cx-dot.h { background: var(--violet); }
+    .cx-score { font-size: 9.5px; color: var(--text-light); margin-top: 6px; text-align: right; }
+
+    /* ── Breakdown ── */
+    .bd-empty { text-align: center; padding: 14px 0; color: var(--text-light); font-size: 11.5px; line-height: 1.5; }
+    .bd-empty .bd-ico { font-size: 24px; display: block; margin-bottom: 6px; opacity: .6; }
+    .bd-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--surface-3); }
+    .bd-item:last-child { border-bottom: none; }
+    .bd-ico2 { font-size: 13px; width: 18px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+    .bd-meta { flex: 1; min-width: 0; }
+    .bd-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .bd-name { font-size: 11.5px; color: var(--text-2); }
+    .bd-hrs  { font-size: 11.5px; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bd-bar-wrap { height: 3px; background: var(--surface-3); border-radius: 2px; margin-top: 4px; }
+    .bd-bar { height: 3px; border-radius: 2px; transition: width .4s ease; }
+    .bdb-basico { background: var(--green); }
+    .bdb-interm { background: var(--blue); }
+    .bdb-avancado { background: var(--violet); }
+
+    /* ── Implantação ── */
+    .setup-box {
+      display: flex; align-items: center; gap: 11px;
+      padding: 11px 13px; border-radius: var(--r-sm);
+      background: var(--violet-soft); border: 1.5px solid #DDD2F5;
+    }
+    .setup-ico { font-size: 19px; flex-shrink: 0; }
+    .setup-txt { flex: 1; min-width: 0; }
+    .setup-title { font-size: 11.5px; font-weight: 700; color: #5B3BA8; }
+    .setup-sub { font-size: 10px; color: #7B5FC4; margin-top: 1px; }
+    .setup-val { font-size: 14px; font-weight: 900; color: #5B3BA8; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+
+    /* ── Readequação ── */
+    .readq-box { display: none; }
+    .readq-box.show { display: block; }
+    .field.readq-box.show { display: flex; }
+
+    /* ── Completude ── */
+    .rp-complete { padding: 11px 22px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+    .cp-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .cp-label { font-size: 10.5px; color: var(--text-muted); font-weight: 500; }
+    .cp-pct { font-size: 10.5px; font-weight: 800; color: var(--navy); }
+    .cp-bar-wrap { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .cp-bar { height: 5px; border-radius: 3px; background: var(--blue); transition: width .4s ease, background .3s; }
+
+    /* ── Ações ── */
+    .rp-actions { padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border); }
+    .seg {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+      background: var(--surface-3); padding: 3px; border-radius: var(--r-sm);
+    }
+    .seg-btn {
+      padding: 7px 8px; border-radius: var(--r-xs); border: none; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-muted);
+      background: transparent; transition: all .15s;
+    }
+    .seg-btn.on { background: var(--surface); color: var(--navy); box-shadow: var(--shadow-sm); }
+    .seg-hint { font-size: 9.5px; color: var(--text-light); text-align: center; line-height: 1.4; }
+
+    /* ─── Animations ──────────────────────────────────────────────────── */
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    @keyframes pulse  { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+    .fee-updating { animation: pulse .32s ease; }
+
+    /* ─── Toast ───────────────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--navy-deep); color: #fff;
+      padding: 11px 20px; border-radius: 24px;
+      font-size: 12.5px; font-weight: 600;
+      box-shadow: var(--shadow-xl); z-index: 999;
+      opacity: 0; transition: all .28s cubic-bezier(.4,0,.2,1); pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* ─── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 1180px) {
+      .app-wrap { grid-template-columns: 1fr; }
+      .result-panel { position: static; order: -1; max-height: none; border-radius: var(--r); }
+      .rp-scroll { overflow: visible; }
+      .param-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    /* Em telas muito largas o formulário ganha espaço de sobra: as seções
+       de volumetria passam a caber em quatro colunas em vez de três. */
+    @media (min-width: 1700px) {
+      .g3 { grid-template-columns: repeat(4, 1fr); }
+      .g3 .span3 { grid-column: span 4; }
+      .param-grid { grid-template-columns: repeat(5, 1fr); }
+    }
+
+    @media (max-width: 760px) {
+      .g2, .g3, .g4, .param-grid { grid-template-columns: 1fr; }
+      .span2, .span3 { grid-column: span 1; }
+      .acct-row, .acct-header { grid-template-columns: 1fr 110px; }
+      .acct-row .pfx { display: none; }
+      .acct-header span:last-child { display: none; }
+      .svc-grid, .need-grid, .erp-choice { grid-template-columns: 1fr; }
+      .platform-grid { grid-template-columns: repeat(2, 1fr); }
+      .app-wrap { padding: 14px 12px 40px; gap: 14px; }
+      .app-header { padding: 0 14px; height: 64px; }
+      .header-logo-img { height: 32px; }
+      .header-divider, .header-brand-text, .header-version { display: none; }
+      .fee-value { font-size: 32px; }
+    }
+
+    /* ═══ PRINT — A4 ══════════════════════════════════════════════════ */
+    #print-page { display: none; }
+
+    @media print {
+      @page { size: A4 portrait; margin: 10mm 11mm; }
+
+      .app-header, .app-wrap, .toast { display: none !important; }
+      body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      #print-page {
+        display: flex !important; flex-direction: column;
+        width: 100%; font-family: 'Inter', Arial, sans-serif;
+        color: #131A33; font-size: 7.4pt; line-height: 1.38; gap: 3mm;
+      }
+
+      /* Modo cliente esconde tudo que é custo/margem interno */
+      body.print-cliente .only-interno { display: none !important; }
+
+      /* ── Header ── */
+      .pp-hdr {
+        display: flex; align-items: center; justify-content: space-between; gap: 4mm;
+        padding: 0 0 2.5mm; border-bottom: 1.2pt solid #27306D;
+      }
+      .pp-hdr-logo { height: 30pt; width: auto; }
+      .pp-hdr-center { text-align: center; flex: 1; }
+      .pp-hdr-center h1 { font-size: 12pt; font-weight: 800; color: #27306D !important; letter-spacing: -.3pt; }
+      .pp-hdr-center p { font-size: 6.8pt; color: #6B7794; margin-top: .6mm; }
+      .pp-hdr-date { text-align: right; font-size: 6.5pt; color: #97A2B8; min-width: 26mm; }
+      .pp-hdr-date strong { display: block; color: #27306D; font-size: 7.6pt; margin-bottom: .4mm; }
+
+      /* ── Corpo ── */
+      .pp-body { display: grid; grid-template-columns: 53% 1fr; gap: 3mm; flex: 1; }
+      .pp-left, .pp-right { display: flex; flex-direction: column; gap: 2.4mm; }
+
+      .pp-section { border: .5pt solid #E1E7F0; border-radius: 3.5pt; overflow: hidden; break-inside: avoid; }
+      .pp-section-head {
+        background: #F4F5FA !important; padding: 1.6mm 2.6mm;
+        border-bottom: .5pt solid #E1E7F0;
+        font-size: 6.2pt; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .4pt; color: #27306D;
+      }
+      .pp-section-body { padding: 2mm 2.6mm; }
+
+      .pp-table { width: 100%; border-collapse: collapse; }
+      .pp-table tr:not(:last-child) td { border-bottom: .4pt solid #F1F4F9; }
+      .pp-table td { padding: 1.25mm 0; font-size: 7.2pt; vertical-align: top; }
+      .pp-table td:first-child { color: #6B7794; width: 55%; }
+      .pp-table td:last-child { font-weight: 600; color: #131A33; text-align: right; }
+      .pp-table td.strong { font-weight: 800; color: #27306D; }
+
+      .pp-tag {
+        display: inline-block; padding: 1.2pt 4.5pt; border-radius: 8pt;
+        font-size: 6.2pt; font-weight: 600; margin: 1pt 1.6pt 1pt 0;
+      }
+      .pp-tag-navy  { background: #E9EBF5 !important; color: #27306D; }
+      .pp-tag-blue  { background: #E4F1FA !important; color: #14639A; }
+      .pp-tag-green { background: #E6F7F1 !important; color: #0A7A54; }
+      .pp-tag-amber { background: #FFF6E5 !important; color: #8A5400; }
+
+      /* ── Caixa de honorário ── */
+      .pp-fee-box {
+        background: linear-gradient(135deg, #1A2150, #27306D 60%, #14639A) !important;
+        border-radius: 5pt; padding: 4mm 3.5mm; text-align: center; break-inside: avoid;
+      }
+      .pp-fee-label { font-size: 5.8pt; text-transform: uppercase; letter-spacing: .8pt; color: rgba(255,255,255,.55); font-weight: 700; }
+      .pp-fee-value { font-size: 21pt; font-weight: 900; color: #fff !important; letter-spacing: -1pt; line-height: 1.1; margin: 1.6mm 0 1mm; }
+      .pp-fee-range { font-size: 6.2pt; color: rgba(255,255,255,.62); }
+      .pp-fee-plan {
+        margin-top: 1.8mm; padding-top: 1.6mm; border-top: .5pt solid rgba(255,255,255,.18);
+        font-size: 6.4pt; color: #A7E8D1; font-weight: 700;
+      }
+
+      /* ── Métricas ── */
+      .pp-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8mm; }
+      .pp-metric { border: .5pt solid #E1E7F0; border-radius: 3.5pt; padding: 1.8mm 1.6mm; text-align: center; }
+      .pp-metric-label { font-size: 5.6pt; color: #6B7794; text-transform: uppercase; letter-spacing: .3pt; }
+      .pp-metric-value { font-size: 9pt; font-weight: 800; color: #27306D; margin-top: .8mm; }
+
+      .pp-validity {
+        border: .5pt solid #B9DBF1; background: #F2F8FD !important;
+        border-radius: 3.5pt; padding: 1.8mm 2.6mm;
+        font-size: 6.2pt; color: #14639A; text-align: center;
+      }
+      .pp-obs {
+        border: .5pt solid #E1E7F0; border-radius: 3.5pt; padding: 1.8mm 2.6mm;
+        font-size: 6.8pt; color: #3A455E; background: #F7F9FC !important;
+      }
+      .pp-footer {
+        display: flex; justify-content: space-between; align-items: center;
+        padding-top: 2mm; border-top: .5pt solid #E1E7F0;
+        font-size: 6.2pt; color: #97A2B8;
+      }
+      .pp-footer strong { color: #27306D; }
+      .pp-margin-good { color: #0A7A54 !important; font-weight: 800; }
+      .pp-margin-warn { color: #8A5400 !important; font-weight: 800; }
+      .pp-margin-bad  { color: #A82020 !important; font-weight: 800; }
+      .pp-breakdown-wrap { flex: 1; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ══ HEADER ═══════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="header-brand">
+    <img src="logo.png" alt="Empresarial BPO Financeiro"
+         class="header-logo-img"
+         onerror="this.style.display='none'; document.getElementById('hdr-fallback').style.display='flex';">
+    <div id="hdr-fallback" style="display:none; align-items:center; gap:10px;">
+      <div style="width:38px;height:38px;background:#27306D;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">📈</div>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#27306D;letter-spacing:-.4px;">empresarial</div>
+        <div style="font-size:11px;color:#1D7FC0;font-weight:500;margin-top:-2px;">bpo financeiro</div>
+      </div>
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-brand-text">
+      <h1>Precificador de Honorários</h1>
+      <p>Diagnóstico · Custo interno · Margem · Mercado</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-version" id="hdr-date">—</span>
+    <span class="header-badge">Uso Interno</span>
+  </div>
+</header>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════════════════ -->
+<div class="app-wrap">
+
+  <!-- ═══════════════════════ COLUNA DO FORMULÁRIO ═══════════════════════ -->
+  <div class="form-column">
+
+    <!-- ① IDENTIFICAÇÃO ────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">1</div>
+        <div class="card-icon ci-navy">🏢</div>
+        <div class="card-head-info">
+          <h3>Identificação da Empresa</h3>
+          <p>Dados cadastrais, regime tributário e porte do cliente</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="g" style="gap:15px;">
+
+          <div class="field">
+            <label class="label">CNPJ</label>
+            <div class="cnpj-row">
+              <input type="text" id="cnpj" placeholder="00.000.000/0000-00" maxlength="18" autocomplete="off">
+              <button class="btn btn-primary" id="btn-lookup">
+                <span id="lookup-txt">Buscar dados</span>
+                <div class="spin" id="lookup-spin"></div>
+              </button>
+            </div>
+            <span class="hint" id="cnpj-hint">Consulta automática de CNAE, porte e situação cadastral na Receita Federal</span>
+          </div>
+
+          <div class="company-banner" id="company-banner">
+            <div class="company-banner-avatar">🏭</div>
+            <div class="company-banner-body">
+              <h4 id="cb-name">—</h4>
+              <p id="cb-cnae">—</p>
+              <div class="tags">
+                <span class="tag tag-navy"  id="cb-porte">—</span>
+                <span class="tag tag-green" id="cb-cidade">—</span>
+                <span class="tag tag-blue"  id="cb-setor">—</span>
+                <span class="tag tag-slate" id="cb-situacao">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="g g2">
+            <div class="field">
+              <label class="label">Razão Social / Nome Fantasia</label>
+              <input type="text" id="razao-social" placeholder="Nome da empresa">
+            </div>
+            <div class="field">
+              <label class="label">CNAE Principal <span class="opt">(automático)</span></label>
+              <input type="text" id="cnae-txt" placeholder="Preenchido via busca de CNPJ" disabled>
+            </div>
+          </div>
+
+          <div class="g g4">
+            <div class="field">
+              <label class="label">
+                Regime Tributário
+                <span class="tip" data-tip="Define as obrigações acessórias e a profundidade dos controles exigidos — impacta diretamente as horas de operação.">i</span>
+              </label>
+              <select id="regime">
+                <option value="">Selecione...</option>
+                <option value="mei">MEI</option>
+                <option value="simples">Simples Nacional</option>
+                <option value="presumido">Lucro Presumido</option>
+                <option value="real">Lucro Real</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label">Faturamento Médio Mensal</label>
+              <div class="pfx">
+                <span class="pfx-label">R$</span>
+                <input type="text" id="faturamento" placeholder="0,00" data-mask="currency">
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">
+                Nº de CNPJs / Filiais
+                <span class="tip" data-tip="Cada CNPJ adicional exige controles, conciliações e fechamentos próprios. Acrescenta esforço proporcional.">i</span>
+              </label>
+              <input type="number" id="qtd-cnpj" value="1" min="1" max="20">
+            </div>
+            <div class="field">
+              <label class="label">
+                Nº de Funcionários <span class="opt">(opcional)</span>
+                <span class="tip" data-tip="Base para o esforço de apoio à folha de pagamento, encargos e benefícios, quando esse serviço estiver no escopo.">i</span>
+              </label>
+              <input type="number" id="funcionarios" placeholder="0" min="0">
+            </div>
+          </div>
+
+          <div class="info-box ib-amber hidden" id="regime-info"></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ② SISTEMA DE GESTÃO ────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">2</div>
+        <div class="card-icon ci-violet">🧩</div>
+        <div class="card-head-info">
+          <h3>Sistema de Gestão (ERP)</h3>
+          <p>Diagnóstico de necessidades e indicação entre Conta Azul e Omie</p>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="info-box ib-blue mb-14">
+          <span>🎯</span>
+          <span><strong>Como funciona:</strong> marque abaixo o que a operação do cliente realmente exige <em>dentro do nosso escopo de BPO financeiro</em>. O motor pontua cada sistema e indica o mais aderente. O <strong>Conta Azul</strong> é o padrão da casa pela simplicidade e adoção rápida; o <strong>Omie</strong> entra quando há projetos, centro de custo com rateio, múltiplos CNPJs, faturamento recorrente ou fiscal complexo.</span>
+        </div>
+
+        <div class="need-grid" id="need-grid"></div>
+
+        <div class="erp-verdict">
+          <div class="erp-verdict-head">
+            <div class="evh-ico" id="erp-ico">💠</div>
+            <div class="evh-txt">
+              <div class="evh-label">Sistema indicado pelo diagnóstico</div>
+              <div class="evh-name" id="erp-name">Conta Azul</div>
+            </div>
+          </div>
+          <div class="erp-verdict-body">
+            <div class="erp-bars">
+              <div class="erp-bar-row">
+                <span class="erp-bar-name">Conta Azul</span>
+                <div class="erp-bar-track"><div class="erp-bar-fill ca" id="erp-bar-ca" style="width:0%"></div></div>
+                <span class="erp-bar-val" id="erp-val-ca">0</span>
+              </div>
+              <div class="erp-bar-row">
+                <span class="erp-bar-name">Omie</span>
+                <div class="erp-bar-track"><div class="erp-bar-fill omie" id="erp-bar-omie" style="width:0%"></div></div>
+                <span class="erp-bar-val" id="erp-val-omie">0</span>
+              </div>
+            </div>
+            <div class="erp-reasons" id="erp-reasons"></div>
+          </div>
+        </div>
+
+        <div class="erp-choice">
+          <div class="erp-opt on" id="erp-opt-ca" onclick="setERP('ca')">
+            <span class="erp-opt-flag">Indicado</span>
+            <div class="erp-opt-name">Conta Azul</div>
+            <div class="erp-opt-desc">Padrão da casa. Rápido de implantar, curva de aprendizado curta e integração fluida com o time e a contabilidade.</div>
+          </div>
+          <div class="erp-opt omie" id="erp-opt-omie" onclick="setERP('omie')">
+            <span class="erp-opt-flag">Indicado</span>
+            <div class="erp-opt-name">Omie</div>
+            <div class="erp-opt-desc">Mais robusto. Projetos, centro de custo com rateio, multi-CNPJ, contratos recorrentes e fiscal avançado — ao custo de mais parametrização.</div>
+          </div>
+        </div>
+
+        <div class="g g3 mt-14">
+          <div class="field">
+            <label class="label">
+              Situação do sistema
+              <span class="tip" data-tip="Multiplica as horas de implantação: do zero 1,00× · migração 1,40× (carga de saldos, histórico e reparametrização) · já utiliza 0,40×. Só produz efeito com 'Implantação / Migração' marcada no escopo.">i</span>
+            </label>
+            <select id="erp-status">
+              <option value="novo">Implantação do zero</option>
+              <option value="migracao">Migração de outro sistema</option>
+              <option value="existente">Já utiliza — apenas ajustes</option>
+            </select>
+            <span class="hint" id="status-hint">—</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Quem assina a licença
+              <span class="tip" data-tip="Se o escritório assina a licença, ela é custo do contrato e precisa estar embutida no honorário. Se o cliente assina, não entra na nossa conta.">i</span>
+            </label>
+            <select id="erp-licenca">
+              <option value="cliente">Cliente paga a licença</option>
+              <option value="escritorio">Escritório paga (entra no custo)</option>
+            </select>
+          </div>
+          <div class="field" id="lic-valor-field" style="display:none;">
+            <label class="label">
+              Mensalidade da licença
+              <span class="tip" data-tip="Valor mensal do plano contratado para este cliente. Entra integralmente no custo do contrato e é repassado ao preço pelo divisor de margem.">i</span>
+            </label>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="erp-licenca-valor" placeholder="0,00" data-mask="currency">
+            </div>
+            <span class="hint" id="lic-hint">Informe o valor do plano para que ele entre no honorário</span>
+          </div>
+        </div>
+
+        <div class="info-box ib-amber mt-14 hidden" id="erp-warn">
+          <span>⚠️</span>
+          <span id="erp-warn-txt"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ③ PLATAFORMAS ──────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">3</div>
+        <div class="card-icon ci-blue">🛒</div>
+        <div class="card-head-info">
+          <h3>Plataformas de Vendas & Recebimento</h3>
+          <p>O esforço muda conforme o nível de integração com o ERP escolhido</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-box ib-slate mb-14">
+          <span>🔌</span>
+          <span>Os selos refletem o sistema selecionado no passo 2 — <strong id="plat-erp-label">Conta Azul</strong>.
+          <strong>Nativo</strong> = conector direto (1,0 h/mês) · <strong>Via app/hub</strong> = integração por marketplace de apps ou middleware (1,75 h/mês) · <strong>Manual</strong> = importação e conferência manual (2,5 h/mês).
+          <em>Matriz parametrizável no código — ajuste conforme os conectores efetivamente contratados.</em></span>
+        </div>
+        <div class="platform-grid" id="platform-grid"></div>
+        <div class="field mt-14">
+          <label class="label">Outras plataformas <span class="opt">(não listadas acima)</span></label>
+          <input type="text" id="outras-plat" placeholder="Ex.: sistema próprio, marketplace regional, ERP legado...">
+          <span class="hint">Cada entrada aqui é tratada como integração manual (+2,5 h/mês)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ CONTAS, CARTÕES & ADQUIRENTES ────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">4</div>
+        <div class="card-icon ci-green">🏦</div>
+        <div class="card-head-info">
+          <h3>Contas, Cartões & Recebimentos</h3>
+          <p>Todo ponto por onde o dinheiro passa e que será conciliado mensalmente</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="acct-table">
+          <div class="acct-header">
+            <span>Tipo de conta / conciliação</span>
+            <span style="text-align:center;">Quantidade</span>
+            <span>Saldo / Média mensal</span>
+          </div>
+
+          <div class="acct-row" id="row-cc">
+            <div class="acct-label">
+              <span class="acct-ico">💳</span>
+              <div>
+                <div class="acct-name">Contas Correntes</div>
+                <div class="acct-sub">Conciliação bancária mensal</div>
+              </div>
+            </div>
+            <div class="qty">
+              <button class="qty-btn" onclick="stepQty('cc',-1)">−</button>
+              <input type="number" class="qty-num" id="q-cc" value="0" min="0" max="30">
+              <button class="qty-btn" onclick="stepQty('cc',1)">+</button>
+            </div>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="v-cc" placeholder="Saldo médio" data-mask="currency">
+            </div>
+          </div>
+
+          <div class="acct-row" id="row-aa">
+            <div class="acct-label">
+              <span class="acct-ico">💹</span>
+              <div>
+                <div class="acct-name">Aplicações Automáticas</div>
+                <div class="acct-sub">Vinculadas à conta corrente</div>
+              </div>
+            </div>
+            <div class="qty">
+              <button class="qty-btn" onclick="stepQty('aa',-1)">−</button>
+              <input type="number" class="qty-num" id="q-aa" value="0" min="0" max="30">
+              <button class="qty-btn" onclick="stepQty('aa',1)">+</button>
+            </div>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="v-aa" placeholder="Saldo médio" data-mask="currency">
+            </div>
+          </div>
+
+          <div class="acct-row" id="row-cdb">
+            <div class="acct-label">
+              <span class="acct-ico">📊</span>
+              <div>
+                <div class="acct-name">CDB / Renda Fixa</div>
+                <div class="acct-sub">Investimentos com controle próprio</div>
+              </div>
+            </div>
+            <div class="qty">
+              <button class="qty-btn" onclick="stepQty('cdb',-1)">−</button>
+              <input type="number" class="qty-num" id="q-cdb" value="0" min="0" max="30">
+              <button class="qty-btn" onclick="stepQty('cdb',1)">+</button>
+            </div>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="v-cdb" placeholder="Valor investido" data-mask="currency">
+            </div>
+          </div>
+
+          <div class="acct-row" id="row-cart">
+            <div class="acct-label">
+              <span class="acct-ico">💰</span>
+              <div>
+                <div class="acct-name">Cartões Corporativos</div>
+                <div class="acct-sub">Conciliação de fatura mensal</div>
+              </div>
+            </div>
+            <div class="qty">
+              <button class="qty-btn" onclick="stepQty('cart',-1)">−</button>
+              <input type="number" class="qty-num" id="q-cart" value="0" min="0" max="30">
+              <button class="qty-btn" onclick="stepQty('cart',1)">+</button>
+            </div>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="v-cart" placeholder="Limite / fatura média" data-mask="currency">
+            </div>
+          </div>
+
+          <div class="acct-row" id="row-adq">
+            <div class="acct-label">
+              <span class="acct-ico">🧾</span>
+              <div>
+                <div class="acct-name">Adquirentes & Contas de Repasse
+                  <span class="tip" data-tip="Conte aqui TODO lugar por onde o dinheiro passa antes de chegar à conta corrente: maquininhas, gateways de pagamento e a conta de recebimento de boletos. Cada um é um ponto de conciliação a mais — o repasse consolida vários recebimentos e precisa ser amarrado um a um, descontando as tarifas.">i</span>
+                </div>
+                <div class="acct-sub">Maquininhas, gateways e conta de boleto</div>
+              </div>
+            </div>
+            <div class="qty">
+              <button class="qty-btn" onclick="stepQty('adq',-1)">−</button>
+              <input type="number" class="qty-num" id="q-adq" value="0" min="0" max="30">
+              <button class="qty-btn" onclick="stepQty('adq',1)">+</button>
+            </div>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="v-adq" placeholder="Volume repassado/mês" data-mask="currency">
+            </div>
+          </div>
+
+        </div>
+
+        <div class="info-box ib-slate mt-14">
+          <span>⏱</span>
+          <span><strong>Como o tempo de conciliação é calculado.</strong> Duas parcelas, não uma:
+          a <strong>fixa</strong> existe por conta aberta — abrir extrato, importar, conferir saldo, fechar o período —
+          e vale mesmo em conta parada;
+          a <strong>variável</strong> vem do volume de movimentos (lançamentos a pagar + a receber + boletos),
+          com adicional de dispersão de 8% por conta extra, porque os mesmos 300 movimentos espalhados
+          em 6 contas dão mais trabalho que concentrados em 1.
+          <em>Contagem de contas sozinha não mede esforço — volume, sim.</em>
+          <br><strong>Boleto conta como conta.</strong> Quando o cliente recebe por boleto, o dinheiro
+          passa por um ambiente intermediário antes do caixa, e o repasse é mais um ponto de conciliação —
+          registre essa conta na linha de adquirentes.</span>
+        </div>
+
+        <div class="field mt-14">
+          <label class="label">
+            Nível de integração bancária
+            <span class="tip" data-tip="Extratos que entram automaticamente no ERP (Open Finance / OFX automático) reduzem muito o tempo de conciliação. Importação manual de arquivos aumenta. O fator incide sobre as duas parcelas, fixa e variável.">i</span>
+          </label>
+          <select id="integra-banco">
+            <option value="total">Total — todas as contas integradas automaticamente (−25% no tempo)</option>
+            <option value="parcial" selected>Parcial — parte integrada, parte por importação (−10%)</option>
+            <option value="manual">Nenhuma — extratos importados/lançados manualmente (+15%)</option>
+          </select>
+          <span class="hint" id="conc-hint">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ NOTAS FISCAIS ────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">5</div>
+        <div class="card-icon ci-amber">📄</div>
+        <div class="card-head-info">
+          <h3>Notas Fiscais</h3>
+          <p>Volume mensal de documentos emitidos e recebidos</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="g g3">
+          <div class="field">
+            <label class="label">NFs Emitidas / mês</label>
+            <input type="number" id="nf-emitidas" placeholder="0" min="0">
+            <span class="hint">Notas de saída — vendas de produtos ou serviços</span>
+          </div>
+          <div class="field">
+            <label class="label">NFs Recebidas / mês <span class="opt">(opcional)</span></label>
+            <input type="number" id="nf-recebidas" placeholder="0" min="0">
+            <span class="hint">Notas de entrada — compras e serviços contratados</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Responsável pela emissão
+              <span class="tip" data-tip="Quando o BPO emite as notas, o esforço por documento aumenta cerca de 60%: conferência de dados, tributação, envio e acompanhamento.">i</span>
+            </label>
+            <select id="nf-responsavel">
+              <option value="cliente">Cliente emite</option>
+              <option value="bpo">BPO emite (+60% no tempo)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ CONTAS A PAGAR ───────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">6</div>
+        <div class="card-icon ci-amber">📤</div>
+        <div class="card-head-info">
+          <h3>Contas a Pagar</h3>
+          <p>Saídas financeiras mensais consolidadas</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="g g3">
+          <div class="field">
+            <label class="label">Valor total mensal</label>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="cp-valor" placeholder="0,00" data-mask="currency">
+            </div>
+            <span class="hint">Soma de contas, cartões e despesas do mês</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Lançamentos / mês
+              <span class="tip" data-tip="Cada pagamento individual processado conta como um lançamento. É o principal direcionador de horas do contas a pagar.">i</span>
+            </label>
+            <input type="number" id="cp-lanc" placeholder="0" min="0">
+            <span class="hint">Nº de pagamentos individuais processados</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Execução do pagamento
+              <span class="tip" data-tip="Executar o pagamento no banco (com alçada, aprovação e comprovantes) consome mais tempo do que apenas agendar e informar.">i</span>
+            </label>
+            <select id="cp-execucao">
+              <option value="cliente">Cliente paga — BPO só agenda</option>
+              <option value="bpo" selected>BPO executa os pagamentos</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑦ CONTAS A RECEBER ─────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">7</div>
+        <div class="card-icon ci-green">📥</div>
+        <div class="card-head-info">
+          <h3>Contas a Receber</h3>
+          <p>Entradas financeiras mensais e régua de cobrança</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="g g3">
+          <div class="field">
+            <label class="label">Valor total mensal</label>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="cr-valor" placeholder="0,00" data-mask="currency">
+            </div>
+            <span class="hint">Soma das receitas e recebimentos previstos</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Lançamentos / mês
+              <span class="tip" data-tip="Cada recebimento individual registrado e baixado conta como um lançamento.">i</span>
+            </label>
+            <input type="number" id="cr-lanc" placeholder="0" min="0">
+            <span class="hint">Nº de recebimentos individuais processados</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Boletos emitidos / mês
+              <span class="tip" data-tip="Emissão, envio, reemissão e baixa de boletos. Some aqui apenas os boletos gerados pelo BPO.">i</span>
+            </label>
+            <input type="number" id="cr-boletos" placeholder="0" min="0">
+            <span class="hint">Emissão, envio e baixa sob responsabilidade do BPO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑧ ESCOPO DE SERVIÇOS ───────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">8</div>
+        <div class="card-icon ci-violet">⚙️</div>
+        <div class="card-head-info">
+          <h3>Escopo de Serviços</h3>
+          <p>O que será efetivamente entregue a este cliente</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="svc-grid" id="svc-grid"></div>
+        <div class="info-box ib-slate mt-14">
+          <span>💡</span>
+          <span>Itens marcados como <strong>AVANÇADO</strong> elevam o índice de complexidade e puxam a operação para um nível de colaborador mais sênior. Serviços ligados a volume (pagar, receber, conciliação, NF, folha) têm as horas calculadas pela volumetria informada nos passos anteriores.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑨ PARÂMETROS COMERCIAIS ────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-step">9</div>
+        <div class="card-icon ci-navy">📋</div>
+        <div class="card-head-info">
+          <h3>Parâmetros Comerciais</h3>
+          <p>Condições contratuais, atendimento e perfil operacional</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="g g3">
+          <div class="field">
+            <label class="label">Tipo de Contrato</label>
+            <select id="contrato">
+              <option value="mensal">Mensal — sem desconto</option>
+              <option value="semestral">Semestral — desconto 5%</option>
+              <option value="anual">Anual — desconto 10%</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">
+              Nível de Organização
+              <span class="tip" data-tip="Clientes desorganizados exigem mais horas de estruturação, cobrança de documentos e retrabalho — todo mês, não só na implantação.">i</span>
+            </label>
+            <select id="organizacao">
+              <option value="alto">Alto — processos bem estruturados</option>
+              <option value="medio" selected>Médio — alguma organização prévia</option>
+              <option value="baixo">Baixo — precisa de reestruturação</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">
+              Reuniões de Resultado / mês
+              <span class="tip" data-tip="Reuniões são sempre alocadas no nível Avançado — quem apresenta resultado é o gestor/gerente. Custam mais por hora.">i</span>
+            </label>
+            <select id="reunioes">
+              <option value="0">Nenhuma</option>
+              <option value="1" selected>1 reunião/mês</option>
+              <option value="2">2 reuniões/mês</option>
+              <option value="4">Semanal — 4/mês</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">
+              Nível de Atendimento (SLA)
+              <span class="tip" data-tip="Canal dedicado e resposta rápida consomem horas de disponibilidade que não aparecem na volumetria.">i</span>
+            </label>
+            <select id="sla">
+              <option value="padrao" selected>Padrão — e-mail e horário comercial</option>
+              <option value="dedicado">Canal dedicado — WhatsApp com prioridade</option>
+              <option value="premium">Premium — analista dedicado e SLA curto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">Tipo de Avaliação</label>
+            <select id="tipo-avaliacao">
+              <option value="novo">Novo cliente</option>
+              <option value="readequacao">Readequação de mensalidade</option>
+            </select>
+          </div>
+          <div class="field readq-box" id="readq-field">
+            <label class="label">
+              Honorário atual
+              <span class="tip" data-tip="Usado para calcular a defasagem e a margem praticada hoje neste cliente.">i</span>
+            </label>
+            <div class="pfx">
+              <span class="pfx-label">R$</span>
+              <input type="text" id="honorario-atual" placeholder="0,00" data-mask="currency">
+            </div>
+          </div>
+        </div>
+        <div class="field mt-14">
+          <label class="label">Observações <span class="opt">(opcional)</span></label>
+          <textarea id="obs" placeholder="Particularidades da operação, condições especiais negociadas, contexto adicional..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑩ CUSTOS, MARGEM & POLÍTICA ────────────────────────────────────── -->
+    <div class="card collapsible collapsed" id="card-params">
+      <div class="card-head" onclick="toggleCard('card-params')">
+        <div class="card-step">10</div>
+        <div class="card-icon ci-slate">🧮</div>
+        <div class="card-head-info">
+          <h3>Custos, Margem & Política de Preço</h3>
+          <p>Parâmetros do escritório — ajuste apenas se a política mudar</p>
+        </div>
+        <div class="card-toggle">▼</div>
+      </div>
+      <div class="card-body">
+
+        <div class="info-box ib-navy mb-14">
+          <span>🔐</span>
+          <span><strong>Base de custo interno.</strong> Os valores abaixo vêm do mapeamento de custo por colaborador (salário + encargos + benefícios + infraestrutura), sobre jornada de 220 h/mês. Nomes e matrículas não são exibidos — apenas o nível. O <strong>custo por hora produtiva</strong> é maior que o custo por hora contratada porque nem toda hora paga é hora faturável.</span>
+        </div>
+
+        <table class="cost-table">
+          <thead>
+            <tr>
+              <th>Nível do colaborador</th>
+              <th>Custo mensal</th>
+              <th>Custo/h contratada</th>
+              <th>Custo/h produtiva</th>
+            </tr>
+          </thead>
+          <tbody id="cost-table-body"></tbody>
+        </table>
+
+        <div class="param-grid mt-14">
+
+          <div class="param-sep">Produtividade e estrutura</div>
+
+          <div class="field">
+            <label class="label">
+              Ocupação produtiva
+              <span class="tip" data-tip="Percentual da jornada de 220 h que vira hora efetivamente alocada em cliente. O restante é reunião interna, treinamento, férias, ociosidade e retrabalho. Referência de mercado em serviços: 65% a 80%.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-ocupacao" value="72" min="40" max="100" step="1"></div>
+            <span class="param-note">220 h × ocupação = horas faturáveis</span>
+          </div>
+
+          <div class="field">
+            <label class="label">
+              Overhead / estrutura
+              <span class="tip" data-tip="Rateio de custos que não são do operador: gestão, comercial, administrativo, aluguel, sistemas internos, contabilidade do escritório.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-overhead" value="18" min="0" max="80" step="1"></div>
+            <span class="param-note">Aplicado sobre o custo direto</span>
+          </div>
+
+          <div class="field">
+            <label class="label">
+              Supervisão / revisão
+              <span class="tip" data-tip="Percentual das horas operacionais que é consumido por revisão de um colaborador do nível imediatamente superior. Garante qualidade e cobre o custo real da hierarquia.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-supervisao" value="12" min="0" max="50" step="1"></div>
+            <span class="param-note">Horas alocadas no nível acima</span>
+          </div>
+
+          <div class="param-sep">Impostos, risco e margem</div>
+
+          <div class="field">
+            <label class="label">
+              Impostos sobre honorários
+              <span class="tip" data-tip="Carga efetiva sobre o faturamento do escritório. Serviços no Simples Nacional Anexo III partem de 6% e sobem conforme a faixa de receita e o Fator R. Confirme com a contabilidade.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-imposto" value="8" min="0" max="30" step="0.5"></div>
+            <span class="param-note">Incide sobre o preço, não sobre o custo</span>
+          </div>
+
+          <div class="field">
+            <label class="label">
+              Inadimplência prevista
+              <span class="tip" data-tip="Provisão para atraso e perda de recebimento na carteira.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-inadimplencia" value="1.5" min="0" max="15" step="0.5"></div>
+            <span class="param-note">Provisão sobre o faturamento</span>
+          </div>
+
+          <div class="field">
+            <label class="label">
+              Margem-alvo (lucro)
+              <span class="tip" data-tip="Lucro líquido desejado depois de custo, overhead, impostos e inadimplência. É o que sobra de fato para o escritório.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-margem" value="30" min="0" max="70" step="1"></div>
+            <span class="param-note">Aplicada por divisor, não por acréscimo</span>
+          </div>
+
+          <div class="field">
+            <label class="label">
+              Margem mínima aceitável
+              <span class="tip" data-tip="Abaixo deste patamar o contrato é sinalizado em vermelho, mesmo que o preço esteja dentro do mercado.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">%</span><input type="number" id="p-margem-min" value="15" min="0" max="50" step="1"></div>
+            <span class="param-note">Piso de rentabilidade do contrato</span>
+          </div>
+
+          <div class="param-sep">Referência de mercado — Belo Horizonte</div>
+
+          <div class="field">
+            <label class="label">Taxa/hora mínima</label>
+            <div class="pfx"><span class="pfx-label">R$</span><input type="number" id="p-rate-min" value="80" min="0" step="1"></div>
+          </div>
+          <div class="field">
+            <label class="label">Taxa/hora média</label>
+            <div class="pfx"><span class="pfx-label">R$</span><input type="number" id="p-rate-base" value="95" min="0" step="1"></div>
+          </div>
+          <div class="field">
+            <label class="label">Taxa/hora máxima</label>
+            <div class="pfx"><span class="pfx-label">R$</span><input type="number" id="p-rate-max" value="120" min="0" step="1"></div>
+          </div>
+          <div class="field">
+            <label class="label">
+              Arredondamento do preço
+              <span class="tip" data-tip="Preço final arredondado para cima no múltiplo escolhido — evita valores quebrados na proposta.">i</span>
+            </label>
+            <select id="p-arredonda">
+              <option value="10">Múltiplo de R$ 10</option>
+              <option value="50" selected>Múltiplo de R$ 50</option>
+              <option value="100">Múltiplo de R$ 100</option>
+            </select>
+          </div>
+
+          <div class="param-sep">Plano Básico — teto de elegibilidade</div>
+
+          <div class="field">
+            <label class="label">Valor do Plano Básico</label>
+            <div class="pfx"><span class="pfx-label">R$</span><input type="text" id="p-plano-valor" value="900,00" data-mask="currency"></div>
+            <span class="param-note">Pacote fechado para operação simples</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Teto de horas
+              <span class="tip" data-tip="Acima deste volume de horas o cliente sai do pacote fechado e passa a ser precificado individualmente.">i</span>
+            </label>
+            <div class="sfx"><span class="sfx-label">h</span><input type="number" id="p-plano-horas" value="10" min="1" max="60" step="0.5"></div>
+          </div>
+          <div class="field">
+            <label class="label">Teto de faturamento do cliente</label>
+            <div class="pfx"><span class="pfx-label">R$</span><input type="text" id="p-plano-fat" value="150.000,00" data-mask="currency"></div>
+            <span class="param-note">Faturamento médio mensal</span>
+          </div>
+          <div class="field">
+            <label class="label">Teto de lançamentos (CP + CR)</label>
+            <input type="number" id="p-plano-lanc" value="100" min="0" step="10">
+            <span class="param-note">Somatório mensal</span>
+          </div>
+          <div class="field">
+            <label class="label">Teto de contas + cartões</label>
+            <input type="number" id="p-plano-contas" value="4" min="0" step="1">
+          </div>
+          <div class="field">
+            <label class="label">Teto de NFs / mês</label>
+            <input type="number" id="p-plano-nf" value="50" min="0" step="5">
+          </div>
+          <div class="field">
+            <label class="label">Piso absoluto de honorário</label>
+            <div class="pfx"><span class="pfx-label">R$</span><input type="text" id="p-piso" value="900,00" data-mask="currency"></div>
+            <span class="param-note">Nenhuma proposta abaixo disso</span>
+          </div>
+          <div class="field">
+            <label class="label">
+              Cobrar implantação
+              <span class="tip" data-tip="O setup é esforço não recorrente. Cobrá-lo à parte evita diluir a implantação na mensalidade e distorcer a margem do contrato.">i</span>
+            </label>
+            <select id="p-cobra-setup">
+              <option value="sim" selected>Sim — cobrança separada</option>
+              <option value="diluido">Diluir em 12 meses na mensalidade</option>
+              <option value="nao">Não cobrar (cortesia)</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="info-box ib-slate mt-14">
+          <span>📐</span>
+          <span><strong>Fórmula do preço:</strong> <code>Preço = Custo total ÷ (1 − impostos% − inadimplência% − margem%)</code>. O método do divisor é o correto quando impostos e margem incidem <em>sobre o preço</em> — somar percentuais ao custo (markup por acréscimo) subestima sistematicamente o valor necessário.</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /form-column -->
+
+  <!-- ═══════════════════════ PAINEL DE RESULTADO ════════════════════════ -->
+  <div class="result-panel">
+
+    <div class="rp-header">
+      <div>
+        <h2>Honorário Recomendado</h2>
+        <p>Custo interno · margem-alvo · referência de mercado</p>
+      </div>
+      <span class="rp-live">● ao vivo</span>
+    </div>
+
+    <div class="rp-scroll">
+
+      <!-- Honorário -->
+      <div class="rp-fee">
+        <div class="fee-label">Honorário Mensal</div>
+        <div class="fee-value" id="rp-fee-val">R$ —</div>
+        <div class="fee-range" id="rp-fee-range">Preencha o diagnóstico para calcular</div>
+        <div class="fee-flags" id="rp-flags"></div>
+      </div>
+
+      <!-- Plano Básico -->
+      <div class="rp-plano">
+        <div class="plano-card fora" id="plano-card">
+          <div class="plano-head">
+            <span class="plano-ico" id="plano-ico">⚪</span>
+            <div class="plano-txt">
+              <div class="plano-title" id="plano-title">Plano Básico</div>
+              <div class="plano-sub" id="plano-sub">Preencha o diagnóstico para avaliar a elegibilidade</div>
+            </div>
+            <div class="plano-val" id="plano-val">R$ 900</div>
+          </div>
+          <button class="plano-toggle" id="plano-toggle" onclick="togglePlanoCrit()">ver critérios</button>
+          <div class="plano-crit" id="plano-crit"></div>
+        </div>
+      </div>
+
+      <!-- Métricas -->
+      <div class="rp-metrics">
+        <div class="rp-metric">
+          <div class="m-label">Horas estimadas/mês</div>
+          <div class="m-value" id="rp-hours">—</div>
+          <div class="m-sub" id="rp-hours-sub">operação + supervisão</div>
+        </div>
+        <div class="rp-metric">
+          <div class="m-label">Taxa efetiva/hora</div>
+          <div class="m-value" id="rp-rate">—</div>
+          <div class="m-sub" id="rp-rate-sub">vs. mercado</div>
+        </div>
+        <div class="rp-metric">
+          <div class="m-label">Nível indicado</div>
+          <div class="m-value" id="rp-tier">—</div>
+          <div class="m-sub" id="rp-tier-sub">operador responsável</div>
+        </div>
+        <div class="rp-metric">
+          <div class="m-label">Margem do contrato</div>
+          <div class="m-value" id="rp-margem">—</div>
+          <div class="m-sub" id="rp-margem-sub">lucro líquido</div>
+        </div>
+      </div>
+
+      <!-- Cruzamento custo × mercado -->
+      <div class="rp-section only-interno">
+        <h4>Cruzamento de referências <span class="h4-side" id="scale-side">—</span></h4>
+        <div id="scale-list">
+          <div class="bd-empty" id="scale-empty">
+            <span class="bd-ico">⚖️</span>
+            O comparativo entre custo, margem-alvo e mercado aparece aqui.
+          </div>
+        </div>
+      </div>
+
+      <!-- Alocação de equipe -->
+      <div class="rp-section only-interno">
+        <h4>Alocação de equipe <span class="h4-side" id="alloc-side">—</span></h4>
+        <div class="alloc-list" id="alloc-list">
+          <div class="bd-empty">
+            <span class="bd-ico">👥</span>
+            A distribuição de horas por nível de colaborador aparece aqui.
+          </div>
+        </div>
+      </div>
+
+      <!-- Complexidade -->
+      <div class="rp-complexity">
+        <div class="cx-label">
+          <span>Complexidade operacional</span>
+          <span class="cx-level-text" id="cx-txt">—</span>
+        </div>
+        <div class="cx-dots">
+          <div class="cx-dot" id="cd1"></div>
+          <div class="cx-dot" id="cd2"></div>
+          <div class="cx-dot" id="cd3"></div>
+          <div class="cx-dot" id="cd4"></div>
+          <div class="cx-dot" id="cd5"></div>
+        </div>
+        <div class="cx-score" id="cx-score">índice 0 / 100</div>
+      </div>
+
+      <!-- Composição do tempo -->
+      <div class="rp-section">
+        <h4>Composição do tempo</h4>
+        <div id="bd-list">
+          <div class="bd-empty">
+            <span class="bd-ico">📊</span>
+            Preencha os campos para ver a composição detalhada do tempo estimado.
+          </div>
+        </div>
+      </div>
+
+      <!-- Implantação -->
+      <div class="rp-section" id="setup-section" style="display:none;">
+        <h4>Implantação <span class="h4-side" id="setup-side">—</span></h4>
+        <div class="setup-box">
+          <span class="setup-ico">🚀</span>
+          <div class="setup-txt">
+            <div class="setup-title" id="setup-title">Setup inicial</div>
+            <div class="setup-sub" id="setup-sub">—</div>
+          </div>
+          <div class="setup-val" id="setup-val">R$ —</div>
+        </div>
+      </div>
+
+      <!-- Readequação -->
+      <div class="rp-section readq-box" id="readq-section">
+        <h4>Readequação <span class="h4-side">honorário atual × recomendado</span></h4>
+        <div id="readq-body"></div>
+      </div>
+
+      <!-- Completude -->
+      <div class="rp-complete">
+        <div class="cp-row">
+          <span class="cp-label">Completude do diagnóstico</span>
+          <span class="cp-pct" id="cp-pct">0%</span>
+        </div>
+        <div class="cp-bar-wrap"><div class="cp-bar" id="cp-bar" style="width:0%"></div></div>
+      </div>
+
+    </div><!-- /rp-scroll -->
+
+    <div class="rp-actions">
+      <div class="seg">
+        <button class="seg-btn on" id="seg-interno" onclick="setPrintMode('interno')">🔒 Interno</button>
+        <button class="seg-btn" id="seg-cliente" onclick="setPrintMode('cliente')">🤝 Cliente</button>
+      </div>
+      <div class="seg-hint" id="seg-hint">Modo interno: imprime custo, margem e alocação de equipe.</div>
+      <button class="btn btn-navy btn-full" onclick="doGenerate()">🖨️&nbsp; Gerar PDF / Imprimir A4</button>
+      <button class="btn btn-outline btn-full" onclick="doCopy()">📋&nbsp; Copiar resumo</button>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="doClear()">🗑️&nbsp; Limpar formulário</button>
+    </div>
+
+  </div><!-- /result-panel -->
+
+</div><!-- /app-wrap -->
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ PÁGINA DE IMPRESSÃO A4 (oculta na tela) ══════════════════════════ -->
+<div id="print-page">
+
+  <div class="pp-hdr">
+    <img class="pp-hdr-logo" src="logo.png" alt="Empresarial BPO Financeiro" onerror="this.style.display='none'">
+    <div class="pp-hdr-center">
+      <h1 id="pp-doc-title">Diagnóstico de Precificação</h1>
+      <p id="pp-doc-sub">BPO Financeiro · Documento de uso interno</p>
+    </div>
+    <div class="pp-hdr-date">
+      <strong id="pp-date">—</strong>
+      Data de emissão
+    </div>
+  </div>
+
+  <div class="pp-body">
+
+    <!-- Coluna esquerda -->
+    <div class="pp-left">
+
+      <div class="pp-section">
+        <div class="pp-section-head">Dados do Cliente</div>
+        <div class="pp-section-body">
+          <table class="pp-table">
+            <tr><td>Empresa</td><td id="pp-empresa">—</td></tr>
+            <tr><td>CNPJ</td><td id="pp-cnpj">—</td></tr>
+            <tr><td>CNAE Principal</td><td id="pp-cnae">—</td></tr>
+            <tr><td>Regime Tributário</td><td id="pp-regime">—</td></tr>
+            <tr><td>Faturamento Médio Mensal</td><td id="pp-fat">—</td></tr>
+            <tr><td>CNPJs / Filiais</td><td id="pp-cnpjs">—</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="pp-section">
+        <div class="pp-section-head">Sistema de Gestão</div>
+        <div class="pp-section-body">
+          <table class="pp-table">
+            <tr><td>Sistema definido</td><td class="strong" id="pp-erp">—</td></tr>
+            <tr><td>Situação</td><td id="pp-erp-status">—</td></tr>
+            <tr><td>Licença</td><td id="pp-erp-lic">—</td></tr>
+          </table>
+          <div id="pp-erp-reason" style="margin-top:1.6mm;font-size:6.6pt;color:#3A455E;line-height:1.4;"></div>
+        </div>
+      </div>
+
+      <div class="pp-section">
+        <div class="pp-section-head">Volumetria Operacional</div>
+        <div class="pp-section-body">
+          <table class="pp-table"><tbody id="pp-vol-body"></tbody></table>
+        </div>
+      </div>
+
+      <div class="pp-section">
+        <div class="pp-section-head">Plataformas de Vendas & Recebimento</div>
+        <div class="pp-section-body"><div id="pp-plat"></div></div>
+      </div>
+
+      <div class="pp-section">
+        <div class="pp-section-head">Escopo de Serviços Contratados</div>
+        <div class="pp-section-body"><div id="pp-services"></div></div>
+      </div>
+
+      <div class="pp-obs" id="pp-obs-wrap" style="display:none;">
+        <strong>Observações:</strong> <span id="pp-obs"></span>
+      </div>
+
+    </div>
+
+    <!-- Coluna direita -->
+    <div class="pp-right">
+
+      <div class="pp-fee-box">
+        <div class="pp-fee-label">Honorário Mensal Recomendado</div>
+        <div class="pp-fee-value" id="pp-fee">R$ —</div>
+        <div class="pp-fee-range" id="pp-range">—</div>
+        <div class="pp-fee-plan" id="pp-plan" style="display:none;"></div>
+      </div>
+
+      <div class="pp-metrics">
+        <div class="pp-metric">
+          <div class="pp-metric-label">Horas/mês</div>
+          <div class="pp-metric-value" id="pp-hours">—</div>
+        </div>
+        <div class="pp-metric">
+          <div class="pp-metric-label">Taxa/hora</div>
+          <div class="pp-metric-value" id="pp-rate">—</div>
+        </div>
+        <div class="pp-metric">
+          <div class="pp-metric-label">Complexidade</div>
+          <div class="pp-metric-value" id="pp-cx">—</div>
+        </div>
+      </div>
+
+      <div class="pp-section only-interno">
+        <div class="pp-section-head">Rentabilidade do Contrato</div>
+        <div class="pp-section-body">
+          <table class="pp-table"><tbody id="pp-rent-body"></tbody></table>
+        </div>
+      </div>
+
+      <div class="pp-section only-interno">
+        <div class="pp-section-head">Alocação de Equipe</div>
+        <div class="pp-section-body">
+          <table class="pp-table"><tbody id="pp-alloc-body"></tbody></table>
+        </div>
+      </div>
+
+      <div class="pp-section pp-breakdown-wrap">
+        <div class="pp-section-head">Composição do Tempo Estimado</div>
+        <div class="pp-section-body">
+          <table class="pp-table"><tbody id="pp-breakdown-body"></tbody></table>
+        </div>
+      </div>
+
+      <div class="pp-section" id="pp-setup-wrap" style="display:none;">
+        <div class="pp-section-head">Investimento de Implantação</div>
+        <div class="pp-section-body">
+          <table class="pp-table"><tbody id="pp-setup-body"></tbody></table>
+        </div>
+      </div>
+
+      <div class="pp-section">
+        <div class="pp-section-head">Condições Comerciais</div>
+        <div class="pp-section-body">
+          <table class="pp-table">
+            <tr><td>Tipo de avaliação</td><td id="pp-tipo">—</td></tr>
+            <tr><td>Tipo de contrato</td><td id="pp-contrato">—</td></tr>
+            <tr><td>Nível de atendimento</td><td id="pp-sla">—</td></tr>
+            <tr><td>Organização do cliente</td><td id="pp-org">—</td></tr>
+            <tr><td>Reuniões mensais</td><td id="pp-reun">—</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="pp-validity">
+        Proposta válida por <strong>30 dias</strong> a partir da data de emissão.
+      </div>
+
+    </div>
+  </div>
+
+  <div class="pp-footer">
+    <div><strong>Empresarial</strong> · BPO Financeiro · Belo Horizonte — MG</div>
+    <div id="pp-footer-mode">Documento de uso interno</div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CATÁLOGOS E PARÂMETROS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Custo interno por nível (origem: "Mapeamento CP BPO.xlsx") ─────────
+   Salário + FGTS + férias + 13º + multa + VR + VT + assistência + seguro +
+   Gympass + infraestrutura (computador). Jornada contratada: 220 h/mês.
+   Nomes e matrículas propositalmente NÃO expostos na interface.        */
+const TIERS = {
+  basico:   { key:'basico',   label:'Básico',        ord:0, jornada:220, custoMes:4762.02,  custoSemInfra:4558.34 },
+  interm:   { key:'interm',   label:'Intermediário', ord:1, jornada:220, custoMes:6018.49,  custoSemInfra:5781.63 },
+  avancado: { key:'avancado', label:'Avançado',      ord:2, jornada:220, custoMes:10089.20, custoSemInfra:9852.34 },
+};
+const TIER_ORDER = ['basico','interm','avancado'];
+const tierUp = k => TIER_ORDER[Math.min(2, TIERS[k].ord + 1)];
+
+/* ── Sistemas de gestão ────────────────────────────────────────────────── */
+const ERPS = {
+  ca:   { key:'ca',   name:'Conta Azul', icon:'💠', setupMult:1.00, operMult:1.00 },
+  omie: { key:'omie', name:'Omie',       icon:'🟣', setupMult:1.55, operMult:1.05 },
+};
+
+/* Necessidades do cliente → pontuação de aderência de cada sistema.
+   `heavy` marca necessidades que, se atendidas fora do ERP, geram
+   controle paralelo em planilha (horas de contorno).                     */
+const NEEDS = [
+  { id:'simplicidade', label:'Operação enxuta — prioridade em simplicidade e adoção rápida', ca:3, omie:0, heavy:false, cx:0 },
+  { id:'ecommerce',    label:'Vendas em e-commerce e marketplaces',                          ca:2, omie:2, heavy:false, cx:1 },
+  { id:'projetos',     label:'Centro de custo, departamento ou projeto com rateio',          ca:0, omie:3, heavy:true,  cx:2 },
+  { id:'dreproj',      label:'DRE gerencial por projeto, filial ou departamento',            ca:0, omie:3, heavy:true,  cx:2 },
+  { id:'multicnpj',    label:'Múltiplos CNPJs ou filiais em visão consolidada',              ca:0, omie:3, heavy:true,  cx:2 },
+  { id:'recorrente',   label:'Contratos recorrentes com faturamento automático',             ca:1, omie:3, heavy:true,  cx:1.5 },
+  { id:'fiscal',       label:'Fiscal complexo — ICMS-ST, CT-e, importação, NFC-e',           ca:0, omie:3, heavy:true,  cx:2 },
+  { id:'api',          label:'Integrações próprias via API e automações',                    ca:1, omie:2, heavy:false, cx:1 },
+];
+
+/* Matriz de integração por sistema.
+   nativo = conector direto · app = marketplace de apps / middleware · manual = importação e conferência.
+   PARAMETRIZÁVEL: ajuste conforme os conectores efetivamente contratados. */
+const INTEG_HRS = { nativo:1.0, app:1.75, manual:2.5 };
+const INTEG_LBL = { nativo:'✓ Nativo', app:'◇ Via app', manual:'⚠ Manual' };
+const PLATFORMS = [
+  { id:'mercadolivre', name:'Mercado Livre', icon:'🛍️', ca:'nativo', omie:'app'    },
+  { id:'shopee',       name:'Shopee',        icon:'🧡', ca:'manual', omie:'app'    },
+  { id:'shopify',      name:'Shopify',       icon:'🏪', ca:'nativo', omie:'app'    },
+  { id:'nuvemshop',    name:'Nuvemshop',     icon:'☁️', ca:'nativo', omie:'app'    },
+  { id:'woocommerce',  name:'WooCommerce',   icon:'🛒', ca:'nativo', omie:'app'    },
+  { id:'amazon',       name:'Amazon',        icon:'📦', ca:'manual', omie:'app'    },
+  { id:'magalu',       name:'Magalu',        icon:'🏬', ca:'manual', omie:'app'    },
+  { id:'ifood',        name:'iFood',         icon:'🍕', ca:'manual', omie:'manual' },
+  { id:'hotmart',      name:'Hotmart',       icon:'🎓', ca:'nativo', omie:'manual' },
+  { id:'eduzz',        name:'Eduzz',         icon:'📱', ca:'manual', omie:'manual' },
+  { id:'kiwify',       name:'Kiwify',        icon:'🥝', ca:'manual', omie:'manual' },
+  { id:'monetizze',    name:'Monetizze',     icon:'💰', ca:'manual', omie:'manual' },
+  { id:'bling',        name:'Bling / Tiny',  icon:'🔗', ca:'app',    omie:'manual' },
+  { id:'mercadopago',  name:'Mercado Pago',  icon:'🔵', ca:'nativo', omie:'app'    },
+  { id:'pagseguro',    name:'PagSeguro',     icon:'💳', ca:'nativo', omie:'app'    },
+  { id:'asaas',        name:'Asaas',         icon:'🧾', ca:'app',    omie:'app'    },
+  { id:'stripe',       name:'Stripe',        icon:'💲', ca:'manual', omie:'manual' },
+  { id:'paypal',       name:'PayPal',        icon:'🅿️', ca:'app',    omie:'manual' },
+];
+
+/* Escopo de serviços.
+   vol  = horas vêm da volumetria (passos 4–7)
+   hrs  = horas fixas mensais
+   adv  = serviço avançado (puxa complexidade e senioridade)
+   setup= item não recorrente                                            */
+const SERVICES = [
+  { id:'ap',       label:'Contas a Pagar',              icon:'📤', desc:'Agenda, aprovação e pagamento',        vol:true },
+  { id:'ar',       label:'Contas a Receber',            icon:'📥', desc:'Baixas, boletos e recebimentos',       vol:true },
+  { id:'conc',     label:'Conciliação Bancária',        icon:'🏦', desc:'Contas, cartões, adquirentes',         vol:true },
+  { id:'nf',       label:'Emissão de Notas Fiscais',    icon:'📄', desc:'NF-e / NFS-e emitidas pelo BPO',       vol:true },
+  { id:'folha',    label:'Apoio à Folha de Pagamento',  icon:'👥', desc:'Pagamentos, encargos e benefícios',    vol:true },
+  { id:'cobranca', label:'Régua de Cobrança',           icon:'📞', desc:'Cobrança ativa e negociação',          hrs:2.5 },
+  { id:'fluxo',    label:'Fluxo de Caixa',              icon:'📈', desc:'Diário, semanal e projeções',          hrs:3 },
+  { id:'dre',      label:'DRE Gerencial',               icon:'📊', desc:'Fechamento mensal de resultado',       hrs:2.5 },
+  { id:'relat',    label:'Relatórios Gerenciais',       icon:'📋', desc:'Dashboards, KPIs e análises',          hrs:2 },
+  { id:'contador', label:'Interface com a Contabilidade',icon:'🧮', desc:'Envio de docs e conciliação contábil', hrs:1.5 },
+  { id:'treasury', label:'Gestão de Tesouraria',        icon:'🏧', desc:'Aplicações, posição e projeção',       hrs:2,   adv:true },
+  { id:'ccusto',   label:'Centro de Custo / Projetos',  icon:'🗂️', desc:'Rateio e resultado por projeto',       hrs:3,   adv:true },
+  { id:'orcamento',label:'Orçamento & Budget',          icon:'🎯', desc:'Orçado × realizado e revisões',        hrs:2.5, adv:true },
+  { id:'implant',  label:'Implantação / Migração',      icon:'🚀', desc:'Setup do ERP e carga inicial',         setup:true },
+];
+
+const REGIME_INFO = {
+  mei:       { label:'MEI',              mult:1.00, cx:0,  txt:'Regime ultra-simplificado. Obrigações mínimas e baixa complexidade fiscal.' },
+  simples:   { label:'Simples Nacional', mult:1.10, cx:2,  txt:'Guia unificada (DAS) e apuração simplificada. Complexidade baixa a média.' },
+  presumido: { label:'Lucro Presumido',  mult:1.25, cx:6,  txt:'Apuração trimestral de IRPJ/CSLL e obrigações acessórias ampliadas. Complexidade média.' },
+  real:      { label:'Lucro Real',       mult:1.50, cx:10, txt:'Contabilidade de custo completa, LALUR e SPED ECD/ECF. Exige controles detalhados e conciliação rigorosa.' },
+};
+
+const ORG_INFO = { alto:{mult:0.92,cx:0,setup:0.90}, medio:{mult:1.00,cx:2,setup:1.00}, baixo:{mult:1.20,cx:6,setup:1.35} };
+const SLA_INFO = { padrao:{hrs:0,label:'Padrão'}, dedicado:{hrs:1.5,label:'Canal dedicado'}, premium:{hrs:3.5,label:'Premium'} };
+const CONTRATO_DESC = { mensal:0, semestral:0.05, anual:0.10 };
+const ERP_STATUS = { novo:{mult:1.00,label:'Implantação do zero'}, migracao:{mult:1.40,label:'Migração de outro sistema'}, existente:{mult:0.40,label:'Já utiliza — ajustes'} };
+
+/* ── Estado ────────────────────────────────────────────────────────────── */
+const state = {
+  platforms: {},
+  services:  { ap:true, ar:true, conc:true },
+  needs:     {},
+  erp:       'ca',
+  erpManual: false,
+  printMode: 'interno',
+  last:      null,
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════════ */
+const el = id => document.getElementById(id);
+const $n = id => parseFloat((el(id)?.value||'').replace(/\./g,'').replace(',','.')) || 0;
+const $i = id => parseInt(el(id)?.value) || 0;
+const $s = id => el(id)?.value || '';
+const $f = id => parseFloat((el(id)?.value||'').replace(',','.')) || 0;
+const isSvc  = id => !!state.services[id];
+const isPlat = id => !!state.platforms[id];
+const isNeed = id => !!state.needs[id];
+const clamp  = (v,a,b) => Math.max(a, Math.min(b, v));
+const fmtBRL = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtBRL0= v => 'R$ ' + Math.round(v||0).toLocaleString('pt-BR');
+const fmtH   = v => (v||0).toFixed(1).replace('.',',') + 'h';
+const fmtPct = v => (v||0).toFixed(1).replace('.',',') + '%';
+const ceilTo = (v,m) => Math.ceil(v/m)*m;
+
+/* Escalonamento de horas por volume de lançamentos (contas a pagar/receber).
+   Degraus finos na base: uma carteira de 8 lançamentos/mês não consome o
+   mesmo tempo de uma de 50. O modelo antigo cobrava 2h para toda a faixa
+   1–50, o que superestimava sistematicamente o cliente pequeno.          */
+function lancHrs(q) {
+  if (q<=0)   return 0;
+  if (q<=10)  return 0.8;
+  if (q<=25)  return 1.3;
+  if (q<=50)  return 2;
+  if (q<=150) return 4;
+  if (q<=300) return 7;
+  if (q<=500) return 10;
+  return 10 + Math.ceil((q-500)/100)*2;
+}
+/* Escalonamento de horas por volume de notas fiscais */
+function nfHrs(q) {
+  if (q<=0)   return 0;
+  if (q<=10)  return 0.4;
+  if (q<=25)  return 0.7;
+  if (q<=50)  return 1;
+  if (q<=150) return 2;
+  if (q<=300) return 4;
+  return 4 + Math.ceil((q-300)/100);
+}
+
+/* ── Conciliação bancária: parcela fixa + parcela variável ──────────────
+   O modelo herdado cobrava horas apenas por CONTAGEM de contas, ignorando
+   quanta movimentação passa por elas. Uma conta corrente com 20 movimentos
+   custava o mesmo que uma com 500.
+
+   Agora o esforço tem duas parcelas:
+     FIXA     — por conta: abrir o extrato, importar, conferir saldo,
+                fechar o período. Existe mesmo em conta parada.
+     VARIÁVEL — pelo volume de movimentos que atravessa as contas,
+                com um adicional de dispersão: os mesmos 300 movimentos
+                espalhados em 6 contas dão mais trabalho que em 1.       */
+const CONC_FIXO = { cc:0.8, aa:0.25, cdb:0.4, cart:0.6, adq:0.8 };
+
+function concVarHrs(m) {
+  if (m<=0)   return 0;
+  if (m<=25)  return 0.4;
+  if (m<=50)  return 0.8;
+  if (m<=150) return 1.8;
+  if (m<=300) return 3.2;
+  if (m<=500) return 5.0;
+  return 5.0 + Math.ceil((m-500)/100)*0.9;
+}
+/* Escalonamento de horas de apoio à folha por nº de funcionários */
+function folhaHrs(q) {
+  if (q<=0)  return 0;
+  if (q<=5)  return 1;
+  if (q<=15) return 2;
+  if (q<=30) return 3.5;
+  if (q<=60) return 5.5;
+  return 5.5 + Math.ceil((q-60)/30)*1.5;
+}
+
+function toast(msg) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RENDER
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderNeeds() {
+  el('need-grid').innerHTML = NEEDS.map(n => `
+    <div class="need-item" id="nd-${n.id}" onclick="toggleNeed('${n.id}')">
+      <div class="need-check" id="ndc-${n.id}"></div>
+      <span class="need-label">${n.label}</span>
+    </div>`).join('');
+}
+
+function renderPlatforms() {
+  const sys = state.erp;
+  el('platform-grid').innerHTML = PLATFORMS.map(p => {
+    const lvl = p[sys];
+    return `
+    <div class="plat-card ${isPlat(p.id)?'on':''}" id="pc-${p.id}" onclick="togglePlatform('${p.id}')">
+      <div class="plat-check" id="pck-${p.id}">${isPlat(p.id)?'✓':''}</div>
+      <span class="plat-icon">${p.icon}</span>
+      <span class="plat-name">${p.name}</span>
+      <span class="plat-badge badge-${lvl}">${INTEG_LBL[lvl]}</span>
+    </div>`;
+  }).join('');
+  el('plat-erp-label').textContent = ERPS[sys].name;
+}
+
+function renderServices() {
+  el('svc-grid').innerHTML = SERVICES.map(s => `
+    <div class="svc-card ${s.adv?'adv':''} ${isSvc(s.id)?'on':''}" id="sc-${s.id}" onclick="toggleService('${s.id}')">
+      ${s.adv ? '<span class="adv-badge">AVANÇADO</span>' : ''}
+      <span class="svc-icon">${s.icon}</span>
+      <div class="svc-body">
+        <div class="svc-title">${s.label}</div>
+        <div class="svc-desc">${s.desc}</div>
+      </div>
+      <div class="svc-check" id="sck-${s.id}">${isSvc(s.id)?'✓':''}</div>
+    </div>`).join('');
+}
+
+function renderCostTable() {
+  const oc = clamp($f('p-ocupacao')||72, 40, 100) / 100;
+  el('cost-table-body').innerHTML = TIER_ORDER.map(k => {
+    const t = TIERS[k];
+    const hProd = t.jornada * oc;
+    return `<tr>
+      <td><span class="lvl-pill lvl-${k}">${t.label}</span></td>
+      <td class="num">${fmtBRL(t.custoMes)}</td>
+      <td class="num">${fmtBRL(t.custoMes/t.jornada)}</td>
+      <td class="num">${fmtBRL(t.custoMes/hProd)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOTOR DE RECOMENDAÇÃO DE ERP
+   ═══════════════════════════════════════════════════════════════════════ */
+function scoreERP() {
+  let ca = 0, omie = 0;
+  const drivers = [];
+  NEEDS.forEach(n => {
+    if (!isNeed(n.id)) return;
+    ca += n.ca; omie += n.omie;
+    if (n.omie - n.ca >= 2) drivers.push({ dir:'omie', label:n.label });
+    else if (n.ca - n.omie >= 2) drivers.push({ dir:'ca', label:n.label });
+  });
+
+  /* Sinais estruturais somam ao diagnóstico, mesmo sem marcação explícita */
+  const cnpjs = Math.max(1, $i('qtd-cnpj'));
+  if (cnpjs > 1) { omie += 3; drivers.push({ dir:'omie', label:`${cnpjs} CNPJs sob gestão consolidada` }); }
+  if ($s('regime') === 'real') { omie += 2; drivers.push({ dir:'omie', label:'Lucro Real exige controles e rastreabilidade mais profundos' }); }
+  if (isSvc('ccusto'))   { omie += 2; }
+  if (isSvc('orcamento')){ omie += 1; }
+  const fat = $n('faturamento');
+  if (fat > 0 && fat < 100000) { ca += 2; drivers.push({ dir:'ca', label:'Porte compatível com uma solução leve e de baixo custo' }); }
+  if (fat > 1500000) { omie += 2; drivers.push({ dir:'omie', label:'Volume financeiro pede um ERP com mais governança' }); }
+
+  const diff = omie - ca;
+  /* Conta Azul é o padrão da casa: o Omie precisa vencer por margem clara */
+  const winner = diff >= 3 ? 'omie' : 'ca';
+  return { ca, omie, diff, winner, drivers };
+}
+
+function renderERPVerdict(sc) {
+  const max = Math.max(sc.ca, sc.omie, 10);
+  el('erp-bar-ca').style.width   = (sc.ca/max*100) + '%';
+  el('erp-bar-omie').style.width = (sc.omie/max*100) + '%';
+  el('erp-val-ca').textContent   = sc.ca;
+  el('erp-val-omie').textContent = sc.omie;
+
+  const w = ERPS[sc.winner];
+  el('erp-ico').textContent  = w.icon;
+  el('erp-name').textContent = w.name;
+
+  el('erp-opt-ca').classList.toggle('recommended',   sc.winner === 'ca');
+  el('erp-opt-omie').classList.toggle('recommended', sc.winner === 'omie');
+
+  const reasons = [];
+  if (!sc.drivers.length) {
+    reasons.push({ ico:'💠', txt:'Sem exigências estruturais marcadas — <strong>Conta Azul</strong> atende com menor custo de implantação e adoção mais rápida pelo cliente.' });
+  } else {
+    sc.drivers.slice(0, 5).forEach(d => {
+      reasons.push({ ico: d.dir==='omie' ? '🟣' : '💠', txt: d.label });
+    });
+  }
+  if (sc.winner === 'omie') {
+    reasons.push({ ico:'⏱', txt:'Contrapartida: implantação mais longa (fator ' + ERPS.omie.setupMult.toFixed(2).replace('.',',') + '×) e ~5% a mais de tempo mensal de parametrização.' });
+  } else if (sc.diff > 0) {
+    reasons.push({ ico:'⚖️', txt:'Há sinais em direção ao Omie, mas ainda insuficientes para justificar a troca do padrão da casa (diferença de ' + sc.diff + ' pontos; o corte é 3).' });
+  }
+  el('erp-reasons').innerHTML = reasons.map(r =>
+    `<div class="erp-reason"><span class="er-ico">${r.ico}</span><span>${r.txt}</span></div>`).join('');
+
+  return sc;
+}
+
+function setERP(k) {
+  state.erp = k;
+  state.erpManual = true;
+  el('erp-opt-ca').classList.toggle('on',   k === 'ca');
+  el('erp-opt-omie').classList.toggle('on', k === 'omie');
+  renderPlatforms();
+  calculate();
+}
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MOTOR DE CÁLCULO
+
+   Fluxo:
+     1. Volumetria e escopo        → horas de operação
+     2. Multiplicadores            → horas ajustadas
+     3. Índice de complexidade     → nível de colaborador indicado
+     4. Alocação por nível         → custo direto (hora produtiva)
+     5. Overhead + licença         → custo total do cliente
+     6. Divisor de impostos/margem → preço-alvo
+     7. Piso, desconto, mercado    → preço recomendado
+     8. Teto do Plano Básico       → veredito de elegibilidade
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function readParams() {
+  return {
+    ocupacao:      clamp($f('p-ocupacao')      || 72,  40, 100) / 100,
+    overhead:      clamp($f('p-overhead')      || 0,    0,  80) / 100,
+    supervisao:    clamp($f('p-supervisao')    || 0,    0,  50) / 100,
+    licenca:       $s('erp-licenca') === 'escritorio' ? $n('erp-licenca-valor') : 0,
+    imposto:       clamp($f('p-imposto')       || 0,    0,  30) / 100,
+    inadimplencia: clamp($f('p-inadimplencia') || 0,    0,  15) / 100,
+    margem:        clamp($f('p-margem')        || 0,    0,  70) / 100,
+    margemMin:     clamp($f('p-margem-min')    || 0,    0,  50) / 100,
+    rateMin:       $f('p-rate-min')  || 80,
+    rateBase:      $f('p-rate-base') || 95,
+    rateMax:       $f('p-rate-max')  || 120,
+    arredonda:     parseInt($s('p-arredonda')) || 50,
+    planoValor:    $n('p-plano-valor')  || 900,
+    planoHoras:    $f('p-plano-horas')  || 10,
+    planoFat:      $n('p-plano-fat')    || 150000,
+    planoLanc:     $i('p-plano-lanc')   || 100,
+    planoContas:   $i('p-plano-contas') || 4,
+    planoNf:       $i('p-plano-nf')     || 50,
+    piso:          $n('p-piso') || 900,
+    cobraSetup:    $s('p-cobra-setup'),
+  };
+}
+
+/* ── 3. Índice de complexidade (0–100) ─────────────────────────────────── */
+function complexityScore(v) {
+  let s = 0;
+  const parts = [];
+  const add = (n, why) => { if (n > 0) { s += n; parts.push(why); } };
+
+  add(clamp((v.cpLanc + v.crLanc) / 400 * 22, 0, 22), 'volume de lançamentos');
+  add(clamp((v.nfe + v.nfr) / 300 * 12, 0, 12),       'volume de notas fiscais');
+  add(clamp(v.contasTot / 10 * 10, 0, 10),            'quantidade de contas e cartões');
+
+  const fat = v.fat;
+  add(fat > 5000000 ? 12 : fat > 2000000 ? 9 : fat > 1000000 ? 6 : fat > 500000 ? 4 : fat > 200000 ? 2 : 0, 'porte de faturamento');
+  add(REGIME_INFO[v.regime]?.cx || 0, 'regime tributário');
+  add(clamp((v.cnpjs - 1) * 4, 0, 10), 'múltiplos CNPJs');
+
+  let needCx = 0;
+  NEEDS.forEach(n => { if (isNeed(n.id)) needCx += n.cx; });
+  add(clamp(needCx, 0, 12), 'exigências estruturais do ERP');
+
+  add(clamp(v.platManual * 2, 0, 8), 'plataformas sem integração nativa');
+  add(ORG_INFO[v.org]?.cx || 0, 'nível de organização do cliente');
+
+  let advCx = 0;
+  SERVICES.forEach(x => { if (x.adv && isSvc(x.id)) advCx += 2.5; });
+  add(clamp(advCx, 0, 8), 'serviços avançados no escopo');
+
+  if (v.funcionarios > 20 && isSvc('folha')) add(3, 'folha de pagamento relevante');
+  if (v.sla === 'premium') add(3, 'SLA premium');
+  else if (v.sla === 'dedicado') add(1.5, 'canal dedicado');
+
+  return { score: clamp(Math.round(s), 0, 100), parts };
+}
+
+function tierFromScore(score) {
+  if (score <= 32) return 'basico';
+  if (score <= 62) return 'interm';
+  return 'avancado';
+}
+
+/* ── Núcleo ────────────────────────────────────────────────────────────── */
+function calculate() {
+  const P = readParams();
+
+  /* ── Leitura da volumetria ── */
+  const v = {
+    regime: $s('regime'), org: $s('organizacao'), sla: $s('sla'),
+    fat: $n('faturamento'), cnpjs: Math.max(1, $i('qtd-cnpj')),
+    funcionarios: $i('funcionarios'),
+    cc: $i('q-cc'), aa: $i('q-aa'), cdb: $i('q-cdb'), cart: $i('q-cart'), adq: $i('q-adq'),
+    nfe: $i('nf-emitidas'), nfr: $i('nf-recebidas'),
+    cpLanc: $i('cp-lanc'), crLanc: $i('cr-lanc'), boletos: $i('cr-boletos'),
+    platManual: 0, contasTot: 0,
+  };
+  v.contasTot = v.cc + v.aa + v.cdb + v.cart + v.adq;
+
+  /* ── Sistema: automático até o usuário escolher manualmente ── */
+  const sc = scoreERP();
+  if (!state.erpManual && state.erp !== sc.winner) {
+    state.erp = sc.winner;
+    el('erp-opt-ca').classList.toggle('on',   state.erp === 'ca');
+    el('erp-opt-omie').classList.toggle('on', state.erp === 'omie');
+    renderPlatforms();
+  }
+  renderERPVerdict(sc);
+  const sys = state.erp;
+  const erp = ERPS[sys];
+
+  /* ─────────────────────────────────────────────────────────────────────
+     1. HORAS DE OPERAÇÃO
+     ───────────────────────────────────────────────────────────────────── */
+  const items = [];
+  const push = (label, icon, hrs, note) => { if (hrs > 0) items.push({ label, icon, hrs, note }); };
+
+  /* Conciliação bancária — parcela fixa por conta + parcela variável por volume */
+  const concFixo = v.cc*CONC_FIXO.cc + v.aa*CONC_FIXO.aa + v.cdb*CONC_FIXO.cdb
+                 + v.cart*CONC_FIXO.cart + v.adq*CONC_FIXO.adq;
+  const movimentos = v.cpLanc + v.crLanc + v.boletos*0.5;
+  /* Dispersão com teto: o custo marginal da 16ª conta não é o da 2ª, e sem
+     limite este fator comporia em excesso com o multiplicador de multi-CNPJ. */
+  const dispersao  = clamp(1 + 0.08 * Math.max(0, v.contasTot - 1), 1, 1.8);
+  const concVar    = concVarHrs(movimentos) * dispersao;
+  const integraMult = { total:0.75, parcial:0.90, manual:1.15 }[$s('integra-banco')] || 1;
+
+  let hConc = (concFixo + concVar) * integraMult;
+  if (hConc === 0 && isSvc('conc')) hConc = 0.8;
+  push('Conciliação Bancária', '🏦', hConc);
+  v.concFixo = concFixo * integraMult;
+  v.concVar  = concVar  * integraMult;
+
+  /* Contas a pagar */
+  let hCP = lancHrs(v.cpLanc);
+  if ($s('cp-execucao') === 'bpo') hCP *= 1.25;
+  if (hCP === 0 && isSvc('ap')) hCP = 1;
+  push('Contas a Pagar', '📤', hCP);
+
+  /* Contas a receber (+ boletos) */
+  let hCR = lancHrs(v.crLanc) + (v.boletos > 0 ? nfHrs(v.boletos) * 0.6 : 0);
+  if (hCR === 0 && isSvc('ar')) hCR = 1;
+  push('Contas a Receber', '📥', hCR);
+
+  /* Notas fiscais */
+  let hNF = nfHrs(v.nfe + v.nfr);
+  if ($s('nf-responsavel') === 'bpo' || isSvc('nf')) hNF *= 1.6;
+  push('Gestão de Notas Fiscais', '📄', hNF);
+
+  /* Folha */
+  if (isSvc('folha')) push('Apoio à Folha de Pagamento', '👥', folhaHrs(v.funcionarios) || 1);
+
+  /* Plataformas */
+  let hPlat = 0;
+  PLATFORMS.forEach(p => {
+    if (!isPlat(p.id)) return;
+    const lvl = p[sys];
+    hPlat += INTEG_HRS[lvl];
+    if (lvl === 'manual') v.platManual++;
+  });
+  const outras = ($s('outras-plat')||'').trim();
+  if (outras) { hPlat += INTEG_HRS.manual; v.platManual++; }
+  push('Plataformas de Vendas', '🛒', hPlat);
+
+  /* Serviços com horas fixas */
+  SERVICES.forEach(s => {
+    if (s.hrs && isSvc(s.id)) push(s.label, s.icon, s.hrs);
+  });
+
+  /* Contorno: necessidade estrutural que o ERP escolhido não cobre bem */
+  let hContorno = 0;
+  const contornoLabels = [];
+  NEEDS.forEach(n => {
+    if (!n.heavy || !isNeed(n.id)) return;
+    const fit = n[sys];                       // aderência do sistema à necessidade
+    if (fit <= 1) { hContorno += 1.5; contornoLabels.push(n.label); }
+  });
+  if (v.cnpjs > 1 && sys === 'ca') hContorno += (v.cnpjs - 1) * 1.0;
+  push('Controles paralelos (fora do ERP)', '📑', hContorno);
+
+  /* SLA */
+  push('Atendimento — ' + (SLA_INFO[v.sla]?.label || 'Padrão'), '💬', SLA_INFO[v.sla]?.hrs || 0);
+
+  /* Reuniões de resultado — sempre no nível Avançado */
+  const nReun = parseInt($s('reunioes')) || 0;
+  const hReun = nReun * 1.5;
+
+  /* ─────────────────────────────────────────────────────────────────────
+     2. MULTIPLICADORES SOBRE AS HORAS DE OPERAÇÃO
+     ───────────────────────────────────────────────────────────────────── */
+  const mRegime = REGIME_INFO[v.regime]?.mult || 1.0;
+  const mOrg    = ORG_INFO[v.org]?.mult || 1.0;
+  const mErp    = erp.operMult;
+  const mCnpj   = 1 + 0.35 * (v.cnpjs - 1);
+  const mult    = mRegime * mOrg * mErp * mCnpj;
+
+  items.forEach(i => { i.hrs = i.hrs * mult; });
+
+  /* Adicional por porte de faturamento (esforço de análise, não de digitação) */
+  const addFat = v.fat > 5000000 ? 4 : v.fat > 1000000 ? 2 : 0;
+  if (addFat > 0) push('Adicional por porte da operação', '📐', addFat);
+
+  let hOper = items.reduce((a,i) => a + i.hrs, 0);
+
+  /* ─────────────────────────────────────────────────────────────────────
+     3. COMPLEXIDADE → NÍVEL DO COLABORADOR
+     ───────────────────────────────────────────────────────────────────── */
+  const cxr  = complexityScore(v);
+  const base = tierFromScore(cxr.score);
+  const sup  = tierUp(base);
+
+  items.forEach(i => { i.tier = base; });
+  if (hReun > 0) items.push({ label:`Reuniões de Resultado (${nReun}×/mês)`, icon:'🤝', hrs:hReun, tier:'avancado' });
+
+  const hSup = hOper * P.supervisao;
+  if (hSup > 0) items.push({ label:'Supervisão e revisão técnica', icon:'🔍', hrs:hSup, tier:sup });
+
+  let hTotal = items.reduce((a,i) => a + i.hrs, 0);
+  hTotal = Math.ceil(hTotal * 2) / 2;   /* meia hora para cima */
+
+  /* ─────────────────────────────────────────────────────────────────────
+     4–5. CUSTO
+     ───────────────────────────────────────────────────────────────────── */
+  const custoHora = {};
+  TIER_ORDER.forEach(k => { custoHora[k] = TIERS[k].custoMes / (TIERS[k].jornada * P.ocupacao); });
+
+  const alloc = { basico:0, interm:0, avancado:0 };
+  items.forEach(i => { alloc[i.tier] = (alloc[i.tier] || 0) + i.hrs; });
+
+  const custoDireto = TIER_ORDER.reduce((a,k) => a + alloc[k] * custoHora[k], 0);
+
+  /* ─────────────────────────────────────────────────────────────────────
+     6–7. PREÇO
+     ───────────────────────────────────────────────────────────────────── */
+  const denomBreak = Math.max(0.05, 1 - P.imposto - P.inadimplencia);
+  const denomAlvo  = Math.max(0.05, 1 - P.imposto - P.inadimplencia - P.margem);
+
+  /* Implantação — esforço não recorrente, calculado antes para poder ser
+     diluído na mensalidade (preço E custo, para não inflar a margem).   */
+  const setup = computeSetup(v, P, sys, base, custoHora, denomAlvo);
+  const diluir = P.cobraSetup === 'diluido' && setup.ativo;
+  const setupDiluido     = diluir ? setup.preco / 12 : 0;
+  const setupCustoMensal = diluir ? (setup.custo || 0) / 12 : 0;
+
+  const custoTotal = custoDireto * (1 + P.overhead) + P.licenca + setupCustoMensal;
+  const breakEven  = custoTotal / denomBreak;
+  const precoAlvo  = custoTotal / denomAlvo;
+
+  const mercado = { min: hTotal*P.rateMin, base: hTotal*P.rateBase, max: hTotal*P.rateMax };
+
+  const desconto  = CONTRATO_DESC[$s('contrato')] || 0;
+  const preSetup  = Math.max(precoAlvo, P.piso);
+
+  let feeIdeal = ceilTo(preSetup * (1 - desconto), P.arredonda);
+  feeIdeal = Math.max(feeIdeal, ceilTo(P.piso, P.arredonda));
+
+  /* Piso de negociação: menor preço que ainda entrega a margem mínima */
+  const denomMin = Math.max(0.05, 1 - P.imposto - P.inadimplencia - P.margemMin);
+  const feeFloor = ceilTo(Math.max(custoTotal / denomMin, P.piso), P.arredonda);
+  const feeCeil  = ceilTo(Math.max(mercado.max, feeIdeal), P.arredonda);
+
+  const effRate  = hTotal > 0 ? feeIdeal / hTotal : 0;
+  const lucro    = feeIdeal * denomBreak - custoTotal;
+  const margem   = feeIdeal > 0 ? lucro / feeIdeal : 0;
+
+  /* ─────────────────────────────────────────────────────────────────────
+     8. PLANO BÁSICO — teto de elegibilidade
+     ───────────────────────────────────────────────────────────────────── */
+  const advSel = SERVICES.filter(s => s.adv && isSvc(s.id)).map(s => s.label);
+  const crit = [
+    { name:'Nível do operador',        ok: base === 'basico',                    val: TIERS[base].label,                     lim:'Básico' },
+    { name:'Complexidade',             ok: cxr.score <= 32,                      val: cxr.score + '/100',                    lim:'≤ 32' },
+    { name:'Horas estimadas/mês',      ok: hTotal <= P.planoHoras,               val: fmtH(hTotal),                          lim:'≤ ' + fmtH(P.planoHoras) },
+    { name:'Regime tributário',        ok: ['mei','simples',''].includes(v.regime), val: REGIME_INFO[v.regime]?.label || '—', lim:'MEI ou Simples' },
+    { name:'Faturamento mensal',       ok: v.fat <= P.planoFat,                  val: v.fat ? fmtBRL0(v.fat) : '—',          lim:'≤ ' + fmtBRL0(P.planoFat) },
+    { name:'Lançamentos CP + CR',      ok: (v.cpLanc + v.crLanc) <= P.planoLanc, val: (v.cpLanc + v.crLanc) + '/mês',        lim:'≤ ' + P.planoLanc },
+    { name:'Contas + cartões',         ok: v.contasTot <= P.planoContas,         val: v.contasTot + '',                      lim:'≤ ' + P.planoContas },
+    { name:'Notas fiscais/mês',        ok: (v.nfe + v.nfr) <= P.planoNf,         val: (v.nfe + v.nfr) + '',                  lim:'≤ ' + P.planoNf },
+    { name:'CNPJs sob gestão',         ok: v.cnpjs === 1,                        val: v.cnpjs + '',                          lim:'1' },
+    { name:'Sem serviços avançados',   ok: advSel.length === 0,                  val: advSel.length ? advSel.length + ' no escopo' : 'nenhum', lim:'0' },
+  ];
+  const fails = crit.filter(c => !c.ok);
+  const planoLucro  = P.planoValor * denomBreak - custoTotal;
+  const planoMargem = P.planoValor > 0 ? planoLucro / P.planoValor : 0;
+  const planoRentavel = planoMargem >= P.margemMin;
+
+  let planoStatus;
+  if (fails.length === 0 && planoRentavel) planoStatus = 'apto';
+  else if (fails.length <= 2 && planoMargem >= 0)  planoStatus = 'limite';
+  else planoStatus = 'fora';
+
+  /* Readequação */
+  const atual = $n('honorario-atual');
+  const readq = atual > 0 ? {
+    atual,
+    delta: feeIdeal - atual,
+    deltaPct: (feeIdeal - atual) / atual,
+    margemAtual: (atual * denomBreak - custoTotal) / atual,
+    rateAtual: hTotal > 0 ? atual / hTotal : 0,
+  } : null;
+
+  const hasData = hTotal > 0;
+
+  const result = {
+    hasData, P, v, sys, erp, sc, items, alloc, custoHora,
+    hOper, hSup, hReun, hTotal, mult, cx: cxr, base, sup,
+    custoDireto, custoTotal, breakEven, precoAlvo, mercado,
+    feeIdeal, feeFloor, feeCeil, effRate, lucro, margem, desconto,
+    setup, setupDiluido, crit, fails, planoStatus, planoMargem, planoLucro,
+    readq, contornoLabels,
+  };
+  state.last = result;
+  updateUI(result);
+  return result;
+}
+
+/* ── Implantação (esforço não recorrente) ──────────────────────────────── */
+function computeSetup(v, P, sys, base, custoHora, denomAlvo) {
+  if (!isSvc('implant')) return { horas:0, preco:0, ativo:false };
+
+  let h = 6;
+  h += v.cc * 1.0 + v.cart * 0.75 + v.adq * 1.0 + v.aa * 0.4 + v.cdb * 0.4;
+  h += PLATFORMS.filter(p => isPlat(p.id)).length * 1.2;
+  h += NEEDS.filter(n => isNeed(n.id)).length * 1.0;
+  h += (v.cnpjs - 1) * 3;
+  h *= ERPS[sys].setupMult;
+  h *= ERP_STATUS[$s('erp-status')]?.mult || 1;
+  h *= ORG_INFO[v.org]?.setup || 1;
+  h = Math.ceil(h * 2) / 2;
+
+  /* Implantação é conduzida pelo nível intermediário no mínimo */
+  const tier = TIERS[base].ord >= 1 ? base : 'interm';
+  const custo = h * custoHora[tier] * (1 + P.overhead);
+  const preco = ceilTo(custo / denomAlvo, P.arredonda);
+
+  return { horas:h, preco, custo, tier, ativo:true };
+}
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   RENDERIZAÇÃO DO PAINEL
+   ═══════════════════════════════════════════════════════════════════════ */
+function updateUI(R) {
+  const P = R.P;
+
+  /* ── Honorário ── */
+  const feeEl = el('rp-fee-val');
+  if (R.hasData) {
+    feeEl.textContent = fmtBRL0(R.feeIdeal);
+    el('rp-fee-range').innerHTML =
+      `Piso de negociação <b>${fmtBRL0(R.feeFloor)}</b> · Teto <b>${fmtBRL0(R.feeCeil)}</b>`;
+  } else {
+    feeEl.textContent = 'R$ —';
+    el('rp-fee-range').textContent = 'Preencha o diagnóstico para calcular';
+  }
+  feeEl.classList.remove('fee-updating'); void feeEl.offsetWidth; feeEl.classList.add('fee-updating');
+
+  /* ── Selos ── */
+  const flags = [];
+  if (R.hasData) {
+    if (R.margem >= P.margem - 0.005)      flags.push(['ff-green','✓ Margem-alvo atingida']);
+    else if (R.margem >= P.margemMin)      flags.push(['ff-amber','⚠ Abaixo da margem-alvo']);
+    else                                    flags.push(['ff-red','✕ Abaixo da margem mínima']);
+
+    if (R.feeIdeal < R.mercado.min)        flags.push(['ff-blue','↓ Abaixo do mercado — há espaço']);
+    else if (R.feeIdeal > R.mercado.max)   flags.push(['ff-amber','↑ Acima do mercado — justifique valor']);
+    else                                    flags.push(['ff-green','◉ Dentro da faixa de mercado']);
+
+    if (R.desconto > 0)                    flags.push(['ff-blue', `−${(R.desconto*100).toFixed(0)}% contrato`]);
+    if (R.feeIdeal <= P.piso)              flags.push(['ff-amber','⚑ Piso do escritório aplicado']);
+  }
+  el('rp-flags').innerHTML = flags.map(([c,t]) => `<span class="fee-flag ${c}">${t}</span>`).join('');
+
+  /* ── Plano Básico ── */
+  renderPlano(R);
+
+  /* ── Métricas ── */
+  if (R.hasData) {
+    el('rp-hours').textContent = fmtH(R.hTotal);
+    el('rp-hours-sub').textContent = `${fmtH(R.hOper)} operação + ${fmtH(R.hSup + R.hReun)} sênior`;
+
+    el('rp-rate').textContent = fmtBRL0(R.effRate) + '/h';
+    const pos = R.effRate < P.rateMin ? 'abaixo do mercado'
+              : R.effRate > P.rateMax ? 'acima do mercado' : 'dentro da faixa';
+    el('rp-rate-sub').textContent = `${pos} (${fmtBRL0(P.rateMin)}–${fmtBRL0(P.rateMax)})`;
+    el('rp-rate').className = 'm-value ' + (R.effRate < P.rateMin ? 'warn' : 'good');
+
+    el('rp-tier').textContent = TIERS[R.base].label;
+    el('rp-tier-sub').textContent = `custo ${fmtBRL0(R.custoHora[R.base])}/h produtiva`;
+    el('rp-tier').className = 'm-value';
+
+    el('rp-margem').textContent = fmtPct(R.margem * 100);
+    el('rp-margem-sub').textContent = `${fmtBRL0(R.lucro)}/mês líquido`;
+    el('rp-margem').className = 'm-value ' +
+      (R.margem >= P.margem - 0.005 ? 'good' : R.margem >= P.margemMin ? 'warn' : 'bad');
+  } else {
+    ['rp-hours','rp-rate','rp-tier','rp-margem'].forEach(id => { el(id).textContent = '—'; el(id).className = 'm-value'; });
+    el('rp-hours-sub').textContent = 'operação + supervisão';
+    el('rp-rate-sub').textContent  = 'vs. mercado';
+    el('rp-tier-sub').textContent  = 'operador responsável';
+    el('rp-margem-sub').textContent= 'lucro líquido';
+  }
+
+  /* ── Cruzamento de referências ── */
+  if (R.hasData) {
+    const rows = [
+      { n:'Custo total',      s:'operação + estrutura',        v:R.custoTotal, c:'sf-cost'   },
+      { n:'Break-even',       s:'sem lucro, só impostos',      v:R.breakEven,  c:'sf-break'  },
+      { n:'Mercado (mín–máx)',s:`${fmtBRL0(P.rateMin)}–${fmtBRL0(P.rateMax)}/h`, v:R.mercado.base, c:'sf-market', range:[R.mercado.min, R.mercado.max] },
+      { n:'Preço p/ margem',  s:`margem-alvo ${(P.margem*100).toFixed(0)}%`,  v:R.precoAlvo,  c:'sf-target' },
+      { n:'Recomendado',      s:'após piso e desconto',        v:R.feeIdeal,   c:'sf-final'  },
+    ];
+    const max = Math.max(...rows.map(r => r.range ? r.range[1] : r.v), 1);
+    el('scale-list').innerHTML = rows.map(r => `
+      <div class="scale-row">
+        <div class="scale-name">${r.n}<small>${r.s}</small></div>
+        <div class="scale-track"><div class="scale-fill ${r.c}" style="width:${clamp(r.v/max*100,2,100).toFixed(1)}%"></div></div>
+        <div class="scale-val">${r.range ? fmtBRL0(r.range[0]) + '–' + fmtBRL0(r.range[1]) : fmtBRL0(r.v)}</div>
+      </div>`).join('');
+    el('scale-side').textContent = `sobre ${fmtH(R.hTotal)}`;
+  } else {
+    el('scale-list').innerHTML = `<div class="bd-empty"><span class="bd-ico">⚖️</span>O comparativo entre custo, margem-alvo e mercado aparece aqui.</div>`;
+    el('scale-side').textContent = '—';
+  }
+
+  /* ── Alocação de equipe ── */
+  const allocRows = TIER_ORDER.filter(k => R.alloc[k] > 0.01);
+  if (allocRows.length) {
+    el('alloc-list').innerHTML = allocRows.map(k => `
+      <div class="alloc-row">
+        <span class="alloc-dot ad-${k}"></span>
+        <span class="alloc-name">${TIERS[k].label}</span>
+        <span class="alloc-hrs">${fmtH(R.alloc[k])}</span>
+        <span class="alloc-cost">${fmtBRL0(R.alloc[k] * R.custoHora[k])}</span>
+      </div>`).join('') +
+      `<div class="alloc-row" style="background:var(--navy-tint);border-color:#D5D9EC;">
+        <span class="alloc-dot" style="background:var(--navy)"></span>
+        <span class="alloc-name" style="color:var(--navy)">Custo direto</span>
+        <span class="alloc-hrs">${fmtH(R.hTotal)}</span>
+        <span class="alloc-cost" style="color:var(--navy);font-weight:700">${fmtBRL0(R.custoDireto)}</span>
+      </div>`;
+    el('alloc-side').textContent = `+${(P.overhead*100).toFixed(0)}% estrutura`;
+  } else {
+    el('alloc-list').innerHTML = `<div class="bd-empty"><span class="bd-ico">👥</span>A distribuição de horas por nível de colaborador aparece aqui.</div>`;
+    el('alloc-side').textContent = '—';
+  }
+
+  /* ── Complexidade ── */
+  const cx5 = R.cx.score <= 15 ? 1 : R.cx.score <= 32 ? 2 : R.cx.score <= 48 ? 3 : R.cx.score <= 62 ? 4 : 5;
+  const lvl = cx5 >= 5 ? 'h' : cx5 >= 3 ? 'm' : 'l';
+  const lbls = ['—','Baixa','Baixa-Média','Média','Média-Alta','Alta'];
+  for (let i = 1; i <= 5; i++) el(`cd${i}`).className = 'cx-dot' + (R.hasData && i <= cx5 ? ` ${lvl}` : '');
+  el('cx-txt').textContent = R.hasData ? lbls[cx5] : '—';
+  el('cx-score').textContent = `índice ${R.hasData ? R.cx.score : 0} / 100 · nível ${TIERS[R.base].label}`;
+
+  /* ── Composição do tempo ── */
+  const bd = el('bd-list');
+  const shown = R.items.filter(i => i.hrs > 0.01);
+  if (!shown.length) {
+    bd.innerHTML = `<div class="bd-empty"><span class="bd-ico">📊</span>Preencha os campos para ver a composição detalhada do tempo estimado.</div>`;
+  } else {
+    const maxH = Math.max(...shown.map(i => i.hrs));
+    bd.innerHTML = shown.map(i => `
+      <div class="bd-item">
+        <span class="bd-ico2">${i.icon}</span>
+        <div class="bd-meta">
+          <div class="bd-row">
+            <span class="bd-name">${i.label}</span>
+            <span class="bd-hrs">${fmtH(i.hrs)}</span>
+          </div>
+          <div class="bd-bar-wrap"><div class="bd-bar bdb-${i.tier}" style="width:${(i.hrs/maxH*100).toFixed(0)}%"></div></div>
+        </div>
+      </div>`).join('');
+  }
+
+  /* ── Implantação ── */
+  if (R.setup.ativo && R.setup.horas > 0) {
+    el('setup-section').style.display = '';
+    el('setup-side').textContent = fmtH(R.setup.horas);
+    const modo = P.cobraSetup === 'sim' ? 'Cobrança separada, à parte da mensalidade'
+               : P.cobraSetup === 'diluido' ? `Diluído em 12× — ${fmtBRL0(R.setupDiluido)}/mês na mensalidade`
+               : 'Não cobrado — absorvido pelo escritório';
+    el('setup-title').textContent = `${ERP_STATUS[$s('erp-status')]?.label || 'Setup'} · ${R.erp.name}`;
+    el('setup-sub').textContent = modo;
+    el('setup-val').textContent = P.cobraSetup === 'nao' ? '—' : fmtBRL0(R.setup.preco);
+  } else {
+    el('setup-section').style.display = 'none';
+  }
+
+  /* ── Readequação ── */
+  const rq = el('readq-section');
+  if (R.readq && R.hasData) {
+    rq.classList.add('show');
+    const d = R.readq;
+    const cls = d.margemAtual >= P.margem ? 'good' : d.margemAtual >= P.margemMin ? 'warn' : 'bad';
+    const sinal = d.delta >= 0 ? '+' : '−';
+    el('readq-body').innerHTML = `
+      <div class="scale-row"><div class="scale-name">Honorário atual<small>${fmtBRL0(d.rateAtual)}/h efetivos</small></div>
+        <div class="scale-track"><div class="scale-fill sf-cost" style="width:${clamp(d.atual/Math.max(d.atual,R.feeIdeal)*100,2,100)}%"></div></div>
+        <div class="scale-val">${fmtBRL0(d.atual)}</div></div>
+      <div class="scale-row"><div class="scale-name">Recomendado<small>${fmtBRL0(R.effRate)}/h efetivos</small></div>
+        <div class="scale-track"><div class="scale-fill sf-final" style="width:${clamp(R.feeIdeal/Math.max(d.atual,R.feeIdeal)*100,2,100)}%"></div></div>
+        <div class="scale-val">${fmtBRL0(R.feeIdeal)}</div></div>
+      <div class="alloc-row mt-10">
+        <span class="alloc-name">Ajuste necessário</span>
+        <span class="alloc-hrs">${sinal}${fmtPct(Math.abs(d.deltaPct)*100)}</span>
+        <span class="alloc-cost">${sinal}${fmtBRL0(Math.abs(d.delta))}</span>
+      </div>
+      <div class="alloc-row">
+        <span class="alloc-name">Margem praticada hoje</span>
+        <span class="alloc-hrs m-value ${cls}" style="font-size:11.5px">${fmtPct(d.margemAtual*100)}</span>
+        <span class="alloc-cost">${fmtBRL0(d.atual*(1-P.imposto-P.inadimplencia)-R.custoTotal)}/mês</span>
+      </div>`;
+  } else {
+    rq.classList.remove('show');
+  }
+
+  /* ── Completude ── */
+  const cpct = calcCompleteness();
+  el('cp-pct').textContent = `${cpct}%`;
+  const bar = el('cp-bar');
+  bar.style.width = `${cpct}%`;
+  bar.style.background = cpct >= 75 ? 'var(--green)' : cpct >= 40 ? 'var(--blue)' : 'var(--text-light)';
+
+  /* ── Aviso de contorno no ERP ── */
+  const warn = el('erp-warn');
+  if (R.contornoLabels.length) {
+    warn.classList.remove('hidden');
+    el('erp-warn-txt').innerHTML = `<strong>Controle paralelo necessário.</strong> Com <strong>${R.erp.name}</strong>, ${R.contornoLabels.length} exigência(s) do cliente ficarão fora do sistema e serão mantidas em planilha — o que já está somado como horas na composição do tempo. Reavalie a escolha do ERP ou negocie a redução desse escopo.`;
+  } else {
+    warn.classList.add('hidden');
+  }
+
+  /* Destaque visual nas linhas de conta preenchidas */
+  [['cc','q-cc'],['aa','q-aa'],['cdb','q-cdb'],['cart','q-cart'],['adq','q-adq']]
+    .forEach(([k,id]) => el('row-'+k)?.classList.toggle('active', $i(id) > 0));
+
+  /* Situação do sistema: só atua sobre a implantação — diz se está ativa ou dormente */
+  const sh = el('status-hint');
+  if (sh) {
+    const st = ERP_STATUS[$s('erp-status')];
+    const fator = (st?.mult ?? 1).toFixed(2).replace('.', ',');
+    if (R.setup.ativo && R.setup.horas > 0) {
+      sh.textContent = `Fator ${fator}× sobre a implantação — ${fmtH(R.setup.horas)} estimadas`;
+      sh.className = 'hint ok';
+    } else {
+      sh.textContent = `Sem efeito agora: marque “Implantação / Migração” no escopo (passo 8) para aplicar o fator ${fator}×`;
+      sh.className = 'hint';
+    }
+  }
+
+  /* Licença: mostra quanto ela empurra no honorário */
+  const lh = el('lic-hint');
+  if (lh) {
+    const denomAlvo = Math.max(0.05, 1 - P.imposto - P.inadimplencia - P.margem);
+    lh.textContent = P.licenca > 0
+      ? `${fmtBRL0(P.licenca)}/mês de custo → +${fmtBRL0(P.licenca / denomAlvo)} no honorário (repassada com impostos e margem)`
+      : 'Informe o valor do plano para que ele entre no honorário';
+    lh.className = P.licenca > 0 ? 'hint ok' : 'hint';
+  }
+
+  /* Abertura da conciliação: parcela fixa × variável */
+  const ch = el('conc-hint');
+  if (ch) {
+    const f = (R.v.concFixo || 0) * R.mult, x = (R.v.concVar || 0) * R.mult;
+    ch.textContent = (f + x) > 0
+      ? `Conciliação estimada: ${fmtH(f + x)} — ${fmtH(f)} fixas (${R.v.contasTot} conta${R.v.contasTot === 1 ? '' : 's'}) + ${fmtH(x)} variáveis (${Math.round(R.v.cpLanc + R.v.crLanc + R.v.boletos*0.5)} movimentos)`
+      : 'Informe contas e volumetria para estimar o tempo de conciliação';
+  }
+}
+
+/* ── Plano Básico ──────────────────────────────────────────────────────── */
+function renderPlano(R) {
+  const card = el('plano-card');
+  card.className = 'plano-card ' + (R.hasData ? R.planoStatus : 'fora');
+  el('plano-val').textContent = fmtBRL0(R.P.planoValor);
+
+  if (!R.hasData) {
+    el('plano-ico').textContent = '⚪';
+    el('plano-title').textContent = 'Plano Básico';
+    el('plano-sub').textContent = 'Preencha o diagnóstico para avaliar a elegibilidade';
+    el('plano-crit').innerHTML = '';
+    return;
+  }
+
+  const n = R.fails.length;
+  if (R.planoStatus === 'apto') {
+    el('plano-ico').textContent = '✅';
+    el('plano-title').textContent = 'Cabe no Plano Básico';
+    el('plano-sub').innerHTML = `Todos os critérios atendidos. Margem no pacote: <strong>${fmtPct(R.planoMargem*100)}</strong> (${fmtBRL0(R.planoLucro)}/mês).`;
+  } else if (R.planoStatus === 'limite') {
+    el('plano-ico').textContent = '⚠️';
+    el('plano-title').textContent = 'Limítrofe — decisão comercial';
+    el('plano-sub').innerHTML = `${n} critério(s) fora do teto. No pacote a margem cai para <strong>${fmtPct(R.planoMargem*100)}</strong>. Ofereça apenas se houver ganho estratégico.`;
+  } else {
+    el('plano-ico').textContent = '⛔';
+    el('plano-title').textContent = 'Fora do Plano Básico';
+    el('plano-sub').innerHTML = n
+      ? `${n} critério(s) acima do teto. Precifique individualmente por <strong>${fmtBRL0(R.feeIdeal)}</strong>.`
+      : `A operação cabe nos tetos, mas o pacote renderia margem de <strong>${fmtPct(R.planoMargem*100)}</strong> — abaixo do mínimo aceitável.`;
+  }
+
+  el('plano-crit').innerHTML = R.crit.map(c => `
+    <div class="pc-row ${c.ok ? '' : 'fail'}">
+      <span class="pc-ico">${c.ok ? '✓' : '✕'}</span>
+      <span class="pc-name">${c.name}</span>
+      <span class="pc-val">${c.val} <span style="color:var(--text-light);font-weight:500">/ ${c.lim}</span></span>
+    </div>`).join('') + `
+    <div class="pc-row ${R.planoMargem >= R.P.margemMin ? '' : 'fail'}" style="border-top:1px dashed rgba(0,0,0,.09);margin-top:5px;padding-top:6px;">
+      <span class="pc-ico">${R.planoMargem >= R.P.margemMin ? '✓' : '✕'}</span>
+      <span class="pc-name">Margem no pacote de ${fmtBRL0(R.P.planoValor)}</span>
+      <span class="pc-val">${fmtPct(R.planoMargem*100)} <span style="color:var(--text-light);font-weight:500">/ ≥ ${fmtPct(R.P.margemMin*100)}</span></span>
+    </div>`;
+}
+
+function togglePlanoCrit() {
+  const c = el('plano-crit');
+  const open = c.classList.toggle('show');
+  el('plano-toggle').textContent = open ? 'ocultar critérios' : 'ver critérios';
+}
+
+function calcCompleteness() {
+  const checks = [
+    !!$s('regime'), $n('faturamento') > 0,
+    ($i('q-cc') + $i('q-aa') + $i('q-cdb') + $i('q-cart') + $i('q-adq')) > 0,
+    $i('cp-lanc') > 0, $i('cr-lanc') > 0, $i('nf-emitidas') > 0,
+    Object.values(state.services).some(Boolean),
+    Object.values(state.platforms).some(Boolean),
+    !!$s('razao-social'),
+    Object.values(state.needs).some(Boolean),
+  ];
+  return Math.round(checks.filter(Boolean).length / checks.length * 100);
+}
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   INTERAÇÕES
+   ═══════════════════════════════════════════════════════════════════════ */
+function togglePlatform(id) {
+  state.platforms[id] = !state.platforms[id];
+  el(`pc-${id}`).classList.toggle('on', !!state.platforms[id]);
+  el(`pck-${id}`).textContent = state.platforms[id] ? '✓' : '';
+  calculate();
+}
+function toggleService(id) {
+  state.services[id] = !state.services[id];
+  el(`sc-${id}`).classList.toggle('on', !!state.services[id]);
+  el(`sck-${id}`).textContent = state.services[id] ? '✓' : '';
+  calculate();
+}
+function toggleNeed(id) {
+  state.needs[id] = !state.needs[id];
+  el(`nd-${id}`).classList.toggle('on', !!state.needs[id]);
+  el(`ndc-${id}`).textContent = state.needs[id] ? '✓' : '';
+  calculate();
+}
+function stepQty(key, delta) {
+  const e = el(`q-${key}`);
+  e.value = Math.max(0, (parseInt(e.value) || 0) + delta);
+  calculate();
+}
+function toggleCard(id) { el(id).classList.toggle('collapsed'); }
+
+function setPrintMode(m) {
+  state.printMode = m;
+  el('seg-interno').classList.toggle('on', m === 'interno');
+  el('seg-cliente').classList.toggle('on', m === 'cliente');
+  el('seg-hint').textContent = m === 'interno'
+    ? 'Modo interno: imprime custo, margem e alocação de equipe.'
+    : 'Modo cliente: oculta custos, margem e alocação — só escopo e honorário.';
+}
+
+/* ── Máscaras ──────────────────────────────────────────────────────────── */
+function bindCurrencyMasks() {
+  document.querySelectorAll('[data-mask="currency"]').forEach(e => {
+    e.addEventListener('input', function() {
+      const v = this.value.replace(/\D/g,'');
+      this.value = v ? (parseInt(v)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
+      calculate();
+    });
+  });
+}
+function maskCNPJ(e) {
+  let v = e.target.value.replace(/\D/g,'').slice(0,14);
+  v = v.replace(/^(\d{2})(\d)/,'$1.$2');
+  v = v.replace(/^(\d{2}\.\d{3})(\d)/,'$1.$2');
+  v = v.replace(/\.(\d{3})(\d)/,'.$1/$2');
+  v = v.replace(/(\d{4})(\d)/,'$1-$2');
+  e.target.value = v;
+}
+function bindCalcListeners() {
+  document.querySelectorAll('input, select, textarea').forEach(e => {
+    if (e.id === 'cnpj') return;
+    if (e.dataset.mask === 'currency') return;   /* já tratado na máscara */
+    e.addEventListener('input',  calculate);
+    e.addEventListener('change', calculate);
+  });
+  el('regime').addEventListener('change', onRegimeChange);
+  el('tipo-avaliacao').addEventListener('change', onTipoChange);
+  el('erp-licenca').addEventListener('change', onLicencaChange);
+  el('p-ocupacao').addEventListener('input', renderCostTable);
+}
+
+function onRegimeChange() {
+  const r = $s('regime');
+  const box = el('regime-info');
+  if (r && REGIME_INFO[r]) {
+    box.innerHTML = `<span>📌</span><span><strong>${REGIME_INFO[r].label}:</strong> ${REGIME_INFO[r].txt} <em>Multiplicador de esforço: ${REGIME_INFO[r].mult.toFixed(2).replace('.',',')}×</em></span>`;
+    box.classList.remove('hidden');
+  } else {
+    box.classList.add('hidden');
+  }
+  calculate();
+}
+function onTipoChange() {
+  const on = $s('tipo-avaliacao') === 'readequacao';
+  el('readq-field').classList.toggle('show', on);
+  if (!on) el('honorario-atual').value = '';
+  calculate();
+}
+
+/* O valor da licença só faz sentido quando o escritório é quem assina.
+   Campo e decisão ficam lado a lado — separá-los fazia o seletor parecer inerte. */
+function onLicencaChange() {
+  const on = $s('erp-licenca') === 'escritorio';
+  el('lic-valor-field').style.display = on ? '' : 'none';
+  if (!on) el('erp-licenca-valor').value = '';
+  calculate();
+}
+
+/* ── Consulta de CNPJ ──────────────────────────────────────────────────── */
+async function lookupCNPJ() {
+  const raw  = el('cnpj').value.replace(/\D/g,'');
+  const hint = el('cnpj-hint'), btn = el('btn-lookup');
+  const spin = el('lookup-spin'), txt = el('lookup-txt');
+
+  if (raw.length !== 14) {
+    hint.textContent = 'Informe os 14 dígitos do CNPJ antes de buscar.';
+    hint.className = 'hint err';
+    return;
+  }
+  btn.disabled = true; spin.style.display = 'block'; txt.textContent = '';
+  hint.textContent = 'Consultando Receita Federal...'; hint.className = 'hint';
+
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+    if (!res.ok) throw new Error('CNPJ não encontrado ou com pendências');
+    applyCompanyData(await res.json());
+    hint.textContent = '✓ Dados carregados com sucesso.';
+    hint.className = 'hint ok';
+  } catch (err) {
+    hint.textContent = `Não foi possível buscar: ${err.message}. Preencha manualmente.`;
+    hint.className = 'hint err';
+    el('company-banner').classList.remove('show');
+  } finally {
+    btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Buscar dados';
+  }
+}
+
+function applyCompanyData(d) {
+  const nome  = d.nome_fantasia || d.razao_social || '—';
+  const cnae  = d.cnae_fiscal || '';
+  const cnaeD = d.cnae_fiscal_descricao || '—';
+
+  el('cb-name').textContent     = nome;
+  el('cb-cnae').textContent     = cnae ? `CNAE ${cnae}: ${cnaeD}` : '—';
+  el('cb-porte').textContent    = porteLabel(d.porte);
+  el('cb-cidade').textContent   = d.municipio ? `${d.municipio} / ${d.uf}` : '—';
+  el('cb-setor').textContent    = cnaeSetor(cnae);
+  el('cb-situacao').textContent = d.descricao_situacao_cadastral || '—';
+  el('company-banner').classList.add('show');
+  el('razao-social').value = nome;
+  el('cnae-txt').value = cnae ? `${cnae} — ${cnaeD}` : '—';
+
+  const p = (d.porte || '').toUpperCase();
+  if      (p.includes('MEI'))     el('regime').value = 'mei';
+  else if (p.includes('MICRO'))   el('regime').value = 'simples';
+  else if (p.includes('PEQUENO')) el('regime').value = 'simples';
+
+  /* Sugere multi-CNPJ quando há filiais registradas */
+  if (Array.isArray(d.qsa) === false && d.filiais) { /* reservado */ }
+
+  onRegimeChange();
+}
+
+function porteLabel(p) {
+  return {'MEI':'MEI','MICRO EMPRESA':'Microempresa','EMPRESA DE PEQUENO PORTE':'Pequeno Porte','DEMAIS':'Médio / Grande'}[p] || p || 'Não informado';
+}
+function cnaeSetor(code) {
+  if (!code) return 'Setor não identificado';
+  const n = parseInt(String(code).substring(0,2));
+  if (n<=3)   return 'Agropecuária';
+  if (n<=9)   return 'Ind. Extrativa';
+  if (n<=33)  return 'Ind. Transformação';
+  if (n===35) return 'Energia / Gás';
+  if (n<=39)  return 'Saneamento';
+  if (n<=43)  return 'Construção';
+  if (n<=47)  return 'Comércio';
+  if (n<=53)  return 'Transporte';
+  if (n<=56)  return 'Hotelaria / Alimentação';
+  if (n<=63)  return 'TI / Comunicação';
+  if (n<=66)  return 'Financeiro / Seguros';
+  if (n===68) return 'Imobiliário';
+  if (n<=75)  return 'Serviços Profissionais';
+  if (n<=82)  return 'Serviços Administrativos';
+  if (n===85) return 'Educação';
+  if (n<=88)  return 'Saúde';
+  if (n<=93)  return 'Artes / Cultura';
+  return 'Outros Serviços';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   IMPRESSÃO A4
+   ═══════════════════════════════════════════════════════════════════════ */
+function doGenerate() {
+  const R = state.last || calculate();
+  if (!R.hasData) { toast('Preencha o diagnóstico antes de gerar o documento.'); return; }
+  populatePrint(R);
+  document.body.classList.toggle('print-cliente', state.printMode === 'cliente');
+  window.print();
+}
+
+function populatePrint(R) {
+  const P = R.P, v = R.v;
+  const cli = state.printMode === 'cliente';
+  const optText = id => { const e = el(id); return e.options[e.selectedIndex]?.text || '—'; };
+
+  el('pp-doc-title').textContent = cli ? 'Proposta de Honorários' : 'Diagnóstico de Precificação';
+  el('pp-doc-sub').textContent   = cli ? 'BPO Financeiro · Proposta comercial' : 'BPO Financeiro · Documento de uso interno';
+  el('pp-footer-mode').textContent = cli ? 'Proposta comercial' : 'Documento de uso interno';
+  el('pp-date').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  /* Cliente */
+  el('pp-empresa').textContent = $s('razao-social') || 'Não informado';
+  el('pp-cnpj').textContent    = $s('cnpj') || '—';
+  el('pp-cnae').textContent    = el('cnae-txt').value || '—';
+  el('pp-regime').textContent  = optText('regime');
+  el('pp-fat').textContent     = v.fat > 0 ? fmtBRL(v.fat) : '—';
+  el('pp-cnpjs').textContent   = v.cnpjs + (v.cnpjs > 1 ? ' CNPJs' : ' CNPJ');
+
+  /* ERP */
+  el('pp-erp').textContent        = R.erp.name;
+  el('pp-erp-status').textContent = optText('erp-status');
+  el('pp-erp-lic').textContent    = optText('erp-licenca');
+  const dr = R.sc.drivers.slice(0,3).map(d => d.label);
+  el('pp-erp-reason').innerHTML = dr.length
+    ? '<strong>Justificativa:</strong> ' + dr.join(' · ')
+    : '<strong>Justificativa:</strong> operação sem exigências estruturais que demandem um ERP mais robusto.';
+
+  /* Volumetria */
+  const rows = [];
+  const addRow = (k, val) => rows.push([k, val]);
+  [['Contas Correntes',v.cc,'conta','contas'],['Aplicações Automáticas',v.aa,'conta','contas'],
+   ['CDB / Renda Fixa',v.cdb,'aplicação','aplicações'],['Cartões Corporativos',v.cart,'cartão','cartões'],
+   ['Adquirentes e contas de repasse',v.adq,'conta','contas']]
+    .forEach(([k,q,s1,s2]) => { if (q > 0) addRow(k, `${q} ${q > 1 ? s2 : s1}`); });
+  if (v.nfe > 0) addRow('NFs Emitidas / mês', `${v.nfe} notas`);
+  if (v.nfr > 0) addRow('NFs Recebidas / mês', `${v.nfr} notas`);
+  if (v.cpLanc > 0) addRow('Lançamentos a Pagar', `${v.cpLanc} lanç.${$n('cp-valor') > 0 ? ' · ' + fmtBRL($n('cp-valor')) : ''}`);
+  if (v.crLanc > 0) addRow('Lançamentos a Receber', `${v.crLanc} lanç.${$n('cr-valor') > 0 ? ' · ' + fmtBRL($n('cr-valor')) : ''}`);
+  if (v.boletos > 0) addRow('Boletos emitidos / mês', `${v.boletos}`);
+  if (v.funcionarios > 0) addRow('Funcionários', `${v.funcionarios}`);
+  addRow('Integração bancária', optText('integra-banco').split('—')[0].trim());
+  el('pp-vol-body').innerHTML = rows.length
+    ? rows.map(([k,x]) => `<tr><td>${k}</td><td>${x}</td></tr>`).join('')
+    : `<tr><td colspan="2" style="color:#97A2B8;">Não informado</td></tr>`;
+
+  /* Plataformas */
+  const plats = PLATFORMS.filter(p => isPlat(p.id));
+  const outras = ($s('outras-plat')||'').trim();
+  const tags = [
+    ...plats.map(p => {
+      const lvl = p[R.sys];
+      const c = lvl === 'nativo' ? 'pp-tag-green' : lvl === 'app' ? 'pp-tag-blue' : 'pp-tag-amber';
+      return `<span class="pp-tag ${c}">${p.name}</span>`;
+    }),
+    ...(outras ? [`<span class="pp-tag pp-tag-navy">${outras}</span>`] : []),
+  ];
+  el('pp-plat').innerHTML = tags.length ? tags.join('') : '<span style="color:#97A2B8;">Nenhuma selecionada</span>';
+
+  /* Escopo */
+  const svcs = SERVICES.filter(s => isSvc(s.id));
+  el('pp-services').innerHTML = svcs.length
+    ? svcs.map(s => `<span class="pp-tag ${s.adv ? 'pp-tag-blue' : 'pp-tag-navy'}">${s.label}</span>`).join('')
+    : '<span style="color:#97A2B8;">Nenhum selecionado</span>';
+
+  /* Observações */
+  const obs = $s('obs');
+  el('pp-obs').textContent = obs;
+  el('pp-obs-wrap').style.display = obs ? 'block' : 'none';
+
+  /* Honorário */
+  el('pp-fee').textContent = fmtBRL0(R.feeIdeal);
+  el('pp-range').textContent = cli
+    ? `Contrato ${optText('contrato').split('—')[0].trim().toLowerCase()} · ${fmtH(R.hTotal)} de dedicação mensal`
+    : `Piso ${fmtBRL0(R.feeFloor)} · Teto ${fmtBRL0(R.feeCeil)} · Mercado ${fmtBRL0(R.mercado.min)}–${fmtBRL0(R.mercado.max)}`;
+
+  const planEl = el('pp-plan');
+  if (R.planoStatus === 'apto') {
+    planEl.style.display = 'block';
+    planEl.textContent = cli
+      ? `Elegível ao Plano Básico — ${fmtBRL0(P.planoValor)}/mês`
+      : `✓ Elegível ao Plano Básico (${fmtBRL0(P.planoValor)}) — margem ${fmtPct(R.planoMargem*100)}`;
+  } else planEl.style.display = 'none';
+
+  /* Métricas */
+  el('pp-hours').textContent = fmtH(R.hTotal);
+  el('pp-rate').textContent  = fmtBRL0(R.effRate);
+  el('pp-cx').textContent    = el('cx-txt').textContent;
+
+  /* Rentabilidade (interno) */
+  el('pp-rent-body').innerHTML = [
+    ['Custo direto de operação', fmtBRL(R.custoDireto)],
+    [`Overhead / estrutura (${(P.overhead*100).toFixed(0)}%)`, fmtBRL(R.custoDireto*P.overhead)],
+    ...(P.licenca > 0 ? [['Licença do sistema', fmtBRL(P.licenca)]] : []),
+    ['Custo total do cliente', fmtBRL(R.custoTotal)],
+    [`Impostos + inadimplência (${((P.imposto+P.inadimplencia)*100).toFixed(1)}%)`, fmtBRL(R.feeIdeal*(P.imposto+P.inadimplencia))],
+    ['Break-even', fmtBRL(R.breakEven)],
+    ['Lucro líquido mensal', fmtBRL(R.lucro)],
+  ].map(([k,x]) => `<tr><td>${k}</td><td>${x}</td></tr>`).join('') +
+   `<tr><td class="strong">Margem do contrato</td><td class="${R.margem>=P.margem?'pp-margin-good':R.margem>=P.margemMin?'pp-margin-warn':'pp-margin-bad'}">${fmtPct(R.margem*100)}</td></tr>`;
+
+  /* Alocação (interno) */
+  el('pp-alloc-body').innerHTML = TIER_ORDER.filter(k => R.alloc[k] > 0.01).map(k =>
+    `<tr><td>Nível ${TIERS[k].label}</td><td>${fmtH(R.alloc[k])} · ${fmtBRL(R.alloc[k]*R.custoHora[k])}</td></tr>`).join('') +
+    `<tr><td class="strong">Responsável principal</td><td class="strong">Nível ${TIERS[R.base].label}</td></tr>`;
+
+  /* Composição */
+  const shown = R.items.filter(i => i.hrs > 0.01);
+  el('pp-breakdown-body').innerHTML = shown.length
+    ? shown.map(i => `<tr><td>${i.label}</td><td>${fmtH(i.hrs)}</td></tr>`).join('') +
+      `<tr><td class="strong">Total mensal</td><td class="strong">${fmtH(R.hTotal)}</td></tr>`
+    : `<tr><td colspan="2" style="color:#97A2B8;">—</td></tr>`;
+
+  /* Implantação */
+  if (R.setup.ativo && R.setup.horas > 0 && P.cobraSetup !== 'nao') {
+    el('pp-setup-wrap').style.display = '';
+    el('pp-setup-body').innerHTML = [
+      ['Escopo', ERP_STATUS[$s('erp-status')]?.label || '—'],
+      ['Esforço estimado', fmtH(R.setup.horas)],
+      ['Forma de cobrança', P.cobraSetup === 'diluido' ? `Diluído em 12× de ${fmtBRL0(R.setupDiluido)}` : 'Cobrança única'],
+    ].map(([k,x]) => `<tr><td>${k}</td><td>${x}</td></tr>`).join('') +
+      `<tr><td class="strong">Investimento</td><td class="strong">${fmtBRL0(R.setup.preco)}</td></tr>`;
+  } else el('pp-setup-wrap').style.display = 'none';
+
+  /* Condições */
+  el('pp-tipo').textContent     = optText('tipo-avaliacao');
+  el('pp-contrato').textContent = optText('contrato');
+  el('pp-sla').textContent      = optText('sla');
+  el('pp-org').textContent      = optText('organizacao');
+  const r = $s('reunioes');
+  el('pp-reun').textContent = r === '0' ? 'Nenhuma' : `${r} por mês`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COPIAR E LIMPAR
+   ═══════════════════════════════════════════════════════════════════════ */
+function doCopy() {
+  const R = state.last || calculate();
+  if (!R.hasData) { toast('Preencha o diagnóstico antes de copiar.'); return; }
+  const P = R.P;
+  const optText = id => { const e = el(id); return e.options[e.selectedIndex]?.text || '—'; };
+  const L = [
+    '═══════════════════════════════════════',
+    '  EMPRESARIAL — BPO FINANCEIRO',
+    '  Precificação de Honorários',
+    '═══════════════════════════════════════',
+    `Cliente   : ${$s('razao-social') || 'Não informado'}`,
+    `CNPJ      : ${$s('cnpj') || '—'}`,
+    `Regime    : ${optText('regime')}`,
+    `Sistema   : ${R.erp.name}`,
+    `Contrato  : ${optText('contrato')}`,
+    '',
+    '── DIAGNÓSTICO ────────────────────────',
+    `Complexidade    : ${el('cx-txt').textContent} (${R.cx.score}/100)`,
+    `Horas/mês       : ${fmtH(R.hTotal)}`,
+    `Nível indicado  : ${TIERS[R.base].label}`,
+    `Taxa efetiva    : ${fmtBRL0(R.effRate)}/h`,
+    '',
+    '── ECONOMIA DO CONTRATO ───────────────',
+    `Custo total     : ${fmtBRL(R.custoTotal)}`,
+    `Break-even      : ${fmtBRL0(R.breakEven)}`,
+    `Mercado         : ${fmtBRL0(R.mercado.min)} — ${fmtBRL0(R.mercado.max)}`,
+    `Margem          : ${fmtPct(R.margem*100)} (${fmtBRL0(R.lucro)}/mês)`,
+    '',
+    `▶ HONORÁRIO MENSAL: ${fmtBRL0(R.feeIdeal)}`,
+    `  Piso de negociação: ${fmtBRL0(R.feeFloor)}`,
+    R.setup.ativo && R.setup.horas > 0 && P.cobraSetup === 'sim'
+      ? `▶ IMPLANTAÇÃO: ${fmtBRL0(R.setup.preco)} (${fmtH(R.setup.horas)})` : '',
+    '',
+    R.planoStatus === 'apto'
+      ? `✅ PLANO BÁSICO: elegível — ${fmtBRL0(P.planoValor)}/mês (margem ${fmtPct(R.planoMargem*100)})`
+      : R.planoStatus === 'limite'
+        ? `⚠️ PLANO BÁSICO: limítrofe — ${R.fails.length} critério(s) fora do teto`
+        : `⛔ PLANO BÁSICO: não elegível — precificar individualmente`,
+    R.readq ? `\n── READEQUAÇÃO ────────────────────────\nAtual: ${fmtBRL0(R.readq.atual)} → Recomendado: ${fmtBRL0(R.feeIdeal)} (${R.readq.delta>=0?'+':'−'}${fmtPct(Math.abs(R.readq.deltaPct)*100)})` : '',
+    $s('obs') ? `\nObs: ${$s('obs')}` : '',
+    `\nEmitido em ${new Date().toLocaleDateString('pt-BR')} · uso interno`,
+  ].filter(x => x !== '');
+
+  navigator.clipboard.writeText(L.join('\n'))
+    .then(() => toast('✅ Resumo copiado para a área de transferência'))
+    .catch(() => toast('Não foi possível copiar automaticamente'));
+}
+
+function doClear() {
+  if (!confirm('Deseja limpar todos os campos do diagnóstico?\n\nOs parâmetros de custo e política de preço serão mantidos.')) return;
+
+  document.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(e => {
+    if (e.disabled || e.id.startsWith('p-')) return;
+    e.value = '';
+  });
+  ['cc','aa','cdb','cart','adq'].forEach(k => { const e = el(`q-${k}`); if (e) e.value = 0; });
+  el('qtd-cnpj').value = 1;
+
+  el('regime').selectedIndex = 0;
+  el('contrato').selectedIndex = 0;
+  el('tipo-avaliacao').selectedIndex = 0;
+  el('erp-status').selectedIndex = 0;
+  el('erp-licenca').selectedIndex = 0;
+  onLicencaChange();
+  el('nf-responsavel').selectedIndex = 0;
+  el('cp-execucao').value = 'bpo';
+  el('integra-banco').value = 'parcial';
+  el('organizacao').value = 'medio';
+  el('reunioes').value = '1';
+  el('sla').value = 'padrao';
+
+  state.platforms = {};
+  state.needs = {};
+  state.services = { ap:true, ar:true, conc:true };
+  state.erpManual = false;
+  state.erp = 'ca';
+  el('erp-opt-ca').classList.add('on');
+  el('erp-opt-omie').classList.remove('on');
+
+  renderPlatforms(); renderServices(); renderNeeds();
+  el('company-banner').classList.remove('show');
+  el('regime-info').classList.add('hidden');
+  el('cnae-txt').value = '';
+  el('cnpj-hint').textContent = 'Consulta automática de CNAE, porte e situação cadastral na Receita Federal';
+  el('cnpj-hint').className = 'hint';
+  onTipoChange();
+  calculate();
+  toast('Formulário limpo');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════ */
+function init() {
+  el('hdr-date').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  renderNeeds();
+  renderPlatforms();
+  renderServices();
+  renderCostTable();
+  bindCurrencyMasks();
+  bindCalcListeners();
+  el('btn-lookup').addEventListener('click', lookupCNPJ);
+  el('cnpj').addEventListener('input', maskCNPJ);
+  el('cnpj').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); lookupCNPJ(); } });
+  window.addEventListener('afterprint', () => document.body.classList.remove('print-cliente'));
+  onTipoChange();
+  onLicencaChange();
+  calculate();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
