@@ -356,6 +356,7 @@
     .ib-green { background: var(--green-soft); border: 1px solid var(--green-line); color: #0A6B4B; }
     .ib-slate { background: var(--surface-2);  border: 1px solid var(--border);     color: var(--text-2); }
     .info-box.hidden { display: none; }
+    .field.hidden { display: none; }
     .mb-14 { margin-bottom: 14px; }
     .mt-14 { margin-top: 14px; }
     .mt-10 { margin-top: 10px; }
@@ -880,12 +881,33 @@
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
     /* ─── Responsive ──────────────────────────────────────────────────── */
+    /* A grade sempre desce um degrau antes de espremer: cada faixa tira
+       uma coluna em vez de deixar campo e rótulo se atropelarem. */
+
+    /* Notebook estreito: o painel de resultado encolhe junto, para o
+       formulário não perder largura útil antes da hora. */
+    @media (max-width: 1360px) {
+      .app-wrap { grid-template-columns: minmax(0, 1fr) clamp(320px, 27vw, 400px); }
+      .g4 { grid-template-columns: repeat(2, 1fr); }
+      .param-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
     @media (max-width: 1180px) {
       .app-wrap { grid-template-columns: 1fr; }
       .result-panel { position: static; order: -1; max-height: none; border-radius: var(--r); }
       .rp-scroll { overflow: visible; }
       .param-grid { grid-template-columns: repeat(3, 1fr); }
+      .g4 { grid-template-columns: repeat(4, 1fr); }
     }
+
+    /* Tablet: três colunas ainda cabem, quatro já não. */
+    @media (max-width: 980px) {
+      .g4, .param-grid { grid-template-columns: repeat(2, 1fr); }
+      .g4 .span2 { grid-column: span 2; }
+      .platform-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+      .erp-bar-row { grid-template-columns: 84px 1fr 32px; }
+    }
+
     /* Em telas muito largas o formulário ganha espaço de sobra: as seções
        de volumetria passam a caber em quatro colunas em vez de três. */
     @media (min-width: 1700px) {
@@ -907,105 +929,396 @@
       .header-logo-img { height: 32px; }
       .header-divider, .header-brand-text, .header-version { display: none; }
       .fee-value { font-size: 32px; }
+      .cnpj-row { grid-template-columns: 1fr; }
+      .cnpj-row .btn { width: 100%; }
+      /* Alvo de toque confortável sem inflar o layout no desktop. */
+      input[type="text"], input[type="number"], select { min-height: 42px; font-size: 16px; }
+      .btn { padding: 11px 16px; }
+      .qty { height: 40px; }
+      .qty-btn { width: 34px; }
     }
 
-    /* ═══ PRINT — A4 ══════════════════════════════════════════════════ */
-    #print-page { display: none; }
+    /* Celular pequeno: ganha espaço tirando respiro dos contêineres,
+       não do conteúdo. */
+    @media (max-width: 480px) {
+      .app-wrap { padding: 12px 10px 32px; }
+      .card-head { padding: 13px 14px 11px; gap: 10px; }
+      .card-body { padding: 16px 14px; }
+      .card-icon { width: 30px; height: 30px; font-size: 14px; }
+      .rp-header, .rp-fee, .rp-sim, .rp-plano,
+      .rp-section, .rp-complexity, .rp-complete, .rp-actions { padding-left: 14px; padding-right: 14px; }
+      .fee-value { font-size: 28px; letter-spacing: -1.2px; }
+      .rp-metrics { grid-template-columns: 1fr 1fr; }
+      .scale-row { grid-template-columns: 88px 1fr 66px; gap: 7px; }
+      .erp-bar-row { grid-template-columns: 76px 1fr 30px; gap: 7px; }
+      .acct-row, .acct-header { grid-template-columns: 1fr 104px; gap: 8px; padding-left: 10px; padding-right: 10px; }
+      .platform-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+      .header-badge { display: none; }
+      /* O tooltip não pode nascer fora da tela num aparelho estreito. */
+      .tip:hover::after { max-width: 62vw; }
+    }
+
+    /* Tela baixa (notebook 768p, janela dividida): o painel fixo não pode
+       ficar mais alto que a janela. */
+    @media (min-width: 1181px) and (max-height: 760px) {
+      .result-panel { max-height: calc(100vh - 96px); top: 84px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important; scroll-behavior: auto !important;
+      }
+      .btn-primary:not(:disabled):hover, .btn-navy:not(:disabled):hover { transform: none; }
+    }
+
+    /* ═══ DOCUMENTO A4 ════════════════════════════════════════════════
+       O layout do documento fica FORA do @media print de propósito: assim
+       a página pode ser renderizada fora do viewport e medida de verdade
+       antes de imprimir. É essa medição que permite calcular a escala
+       exata para o documento caber sempre em UMA única folha A4 — em vez
+       de torcer para o conteúdo caber por sorte.
+       ═════════════════════════════════════════════════════════════════ */
+    #print-page {
+      display: none;
+      flex-direction: column;
+      width: var(--pp-w, 190mm);          /* 210mm − 2×10mm de margem */
+      min-height: var(--pp-h, 0);
+      gap: var(--pp-gap, 3mm);
+      font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif;
+      color: #131A33; font-size: 8.5pt; line-height: 1.4;
+      background: #fff;
+      font-variant-numeric: tabular-nums;
+      zoom: var(--pp-zoom, 1);
+      transform: var(--pp-transform, none);
+      transform-origin: top left;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    /* Estado de medição: renderiza fora da tela, sem escala e sem altura
+       mínima, para que a altura lida seja a altura real do conteúdo. */
+    body.pp-measuring #print-page {
+      display: flex;
+      position: fixed; top: 0; left: -30000px;
+      min-height: 0; zoom: 1; transform: none;
+      z-index: -1; pointer-events: none;
+    }
+    /* Sem isto as duas colunas esticam até a altura da linha do grid e
+       medem sempre igual — o rebalanceamento ficaria cego. */
+    body.pp-measuring .pp-body { align-items: start; }
+
+    /* Modo cliente esconde tudo que é custo/margem interno.
+       Escopado ao documento: a regra precisa valer fora do @media print
+       (senão a medição não enxerga o que o modo cliente esconde), mas não
+       pode alcançar o painel na tela, que também usa .only-interno e
+       ficaria mutilado enquanto a classe estivesse no body. */
+    body.print-cliente #print-page .only-interno { display: none !important; }
+
+    /* Os dois documentos vivem no mesmo #print-page e se alternam pelo modo.
+       Só um deles é renderizado — o outro sai do fluxo e, por isso, também
+       sai da medição que garante a página única. */
+    #pp-doc-diag, #pp-doc-prop {
+      display: flex; flex-direction: column; flex: 1; min-height: 0;
+      gap: var(--pp-gap, 3mm);
+    }
+    #pp-doc-prop { display: none !important; }
+    body.print-cliente #pp-doc-diag { display: none !important; }
+    body.print-cliente #pp-doc-prop { display: flex !important; }
+
+    /* ── Header ── */
+    .pp-hdr {
+      display: flex; align-items: center; justify-content: space-between; gap: 4mm;
+      padding: 0 0 2.5mm; border-bottom: 1.2pt solid #27306D;
+    }
+    .pp-hdr-logo { height: 30pt; width: auto; }
+    .pp-hdr-center { text-align: center; flex: 1; }
+    .pp-hdr-center h1 { font-size: 13.5pt; font-weight: 700; color: #27306D !important; letter-spacing: -.02em; }
+    .pp-hdr-center p {
+      font-size: 7pt; color: #5A6580; margin-top: .9mm;
+      text-transform: uppercase; letter-spacing: .1em; font-weight: 600;
+    }
+    .pp-hdr-date { text-align: right; font-size: 7.4pt; color: #6B7794; min-width: 28mm; }
+    .pp-hdr-date strong { display: block; color: #27306D; font-size: 8.4pt; margin-bottom: .4mm; }
+
+    /* ── Corpo ── */
+    .pp-body { display: grid; grid-template-columns: 53% 1fr; gap: 3mm; flex: 1; }
+    .pp-left, .pp-right { display: flex; flex-direction: column; gap: 2.4mm; min-width: 0; }
+
+    .pp-section { border: .5pt solid #E1E7F0; border-radius: 3.5pt; overflow: hidden; break-inside: avoid; }
+    .pp-section-head {
+      background: #F4F5FA !important; padding: 1.5mm 2.6mm;
+      border-bottom: .5pt solid #E1E7F0;
+      font-size: 7.2pt; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .055em; color: #27306D;
+    }
+    /* Marcador tipográfico: dá hierarquia ao título da seção sem gastar
+       milímetro nenhum de altura. */
+    .pp-section-head::before {
+      content: ''; display: inline-block; vertical-align: middle;
+      width: 3.2pt; height: 3.2pt; border-radius: .8pt;
+      background: #14639A !important; margin-right: 1.5mm;
+      position: relative; top: -.4pt;
+    }
+    .pp-section-body { padding: 1.9mm 2.6mm; }
+    .pp-erp-reason { margin-top: 1.6mm; font-size: 7.6pt; color: #3A455E; line-height: 1.42; }
+
+    .pp-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .pp-table tr:not(:last-child) td { border-bottom: .4pt solid #EDF1F7; }
+    .pp-table td {
+      padding: 1.25mm 0; font-size: 8.2pt; vertical-align: top;
+      overflow-wrap: anywhere; word-break: break-word;
+    }
+    .pp-table td:first-child { color: #4A5570; width: 54%; padding-right: 2mm; }
+    .pp-table td:last-child { font-weight: 600; color: #131A33; text-align: right; }
+    /* Linha de total: fecha o bloco em vez de se confundir com as demais. */
+    .pp-table td.strong { font-weight: 700; color: #27306D; }
+    .pp-table tr:last-child:has(td.strong) td { border-top: .7pt solid #D7DEEA; padding-top: 1.5mm; }
+
+    .pp-tag {
+      display: inline-block; padding: 1.4pt 5pt; border-radius: 8pt;
+      font-size: 7.2pt; font-weight: 600; margin: 1.2pt 1.8pt 1.2pt 0;
+    }
+    .pp-tag-navy  { background: #E9EBF5 !important; color: #27306D; }
+    .pp-tag-blue  { background: #E4F1FA !important; color: #14639A; }
+    .pp-tag-green { background: #E6F7F1 !important; color: #0A7A54; }
+    .pp-tag-amber { background: #FFF6E5 !important; color: #8A5400; }
+
+    /* ── Caixa de honorário ── */
+    /* O fundo precisa sobreviver a renderizador de PDF que descarta gradiente.
+       background-color é o piso garantido; o gradiente entra por cima como
+       enriquecimento. Sem isso o box sai branco e o texto branco some. */
+    .pp-fee-box {
+      background-color: #232C63 !important;
+      background-image: linear-gradient(135deg, #1A2150, #27306D 60%, #14639A) !important;
+      border: .5pt solid #1A2150;
+      border-radius: 5pt; padding: 4mm 3.5mm; text-align: center; break-inside: avoid;
+    }
+    /* Cores chapadas em vez de rgba: o texto do box não depende de
+       composição de alfa, que alguns renderizadores de PDF erram. */
+    .pp-fee-label { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .09em; color: #C6C8D6 !important; font-weight: 600; }
+    .pp-fee-value { font-size: 23pt; font-weight: 800; color: #fff !important; letter-spacing: -.02em; line-height: 1.1; margin: 1.6mm 0 1mm; }
+    .pp-fee-range { font-size: 7.2pt; color: #D3D5E0 !important; }
+    .pp-fee-plan {
+      margin-top: 1.8mm; padding-top: 1.6mm; border-top: .5pt solid rgba(255,255,255,.22);
+      font-size: 7.4pt; color: #B6F0DA; font-weight: 600;
+    }
+
+    /* ── Métricas ── */
+    .pp-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8mm; }
+    .pp-metric {
+      border: .5pt solid #E1E7F0; border-radius: 3.5pt; padding: 1.7mm 1.6mm;
+      text-align: center; background: #FAFBFD !important;
+    }
+    .pp-metric-label { font-size: 6.6pt; color: #4A5570; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .pp-metric-value { font-size: 11pt; font-weight: 700; color: #27306D; margin-top: .8mm; letter-spacing: -.015em; }
+
+    .pp-validity {
+      border: .5pt solid #B9DBF1; background: #F2F8FD !important;
+      border-radius: 3.5pt; padding: 1.7mm 2.6mm;
+      font-size: 7.2pt; color: #12557F; text-align: center;
+    }
+    .pp-obs {
+      border: .5pt solid #E1E7F0; border-radius: 3.5pt; padding: 1.7mm 2.6mm;
+      font-size: 7.8pt; color: #3A455E; background: #F7F9FC !important;
+      overflow-wrap: anywhere;
+    }
+    .pp-footer {
+      display: flex; justify-content: space-between; align-items: center; gap: 4mm;
+      padding-top: 2mm; border-top: .5pt solid #E1E7F0;
+      font-size: 7.2pt; color: #6B7794; margin-top: auto;
+    }
+    .pp-footer strong { color: #27306D; }
+    .pp-margin-good { color: #0A7A54 !important; font-weight: 700; }
+    .pp-margin-warn { color: #8A5400 !important; font-weight: 700; }
+    .pp-margin-bad  { color: #A82020 !important; font-weight: 700; }
+    /* As caixas fecham no conteúdo. Esticar a maior delas para preencher a
+       coluna deixava um vazio dentro de uma moldura, que lê como erro de
+       renderização — a sobra vai para o pé da coluna, onde não incomoda. */
+
+    /* ═══ PROPOSTA DE PRESTAÇÃO DE SERVIÇOS (modo cliente) ═════════════
+       Documento comercial: abre com destinatário e parágrafo de abertura,
+       fecha com aceite. Não é o diagnóstico com as caixas internas
+       escondidas — é outro documento, com outra ordem de leitura.
+       ═════════════════════════════════════════════════════════════════ */
+    .pr-to {
+      display: flex; justify-content: space-between; align-items: stretch; gap: 4mm;
+      border: .5pt solid #DCE3EE; border-left: 2.2pt solid #27306D;
+      border-radius: 3.5pt; padding: 2.2mm 3mm;
+      background: #F8FAFD !important; break-inside: avoid;
+    }
+    .pr-to-label {
+      font-size: 6.4pt; text-transform: uppercase; letter-spacing: .1em;
+      color: #6B7794; font-weight: 600;
+    }
+    .pr-to-name {
+      font-size: 12pt; font-weight: 700; color: #27306D !important;
+      letter-spacing: -.02em; margin: .7mm 0 .5mm; line-height: 1.15;
+    }
+    .pr-to-meta { font-size: 7.4pt; color: #4A5570; line-height: 1.45; }
+    .pr-to-side {
+      text-align: right; display: flex; flex-direction: column; gap: 1.1mm;
+      justify-content: center; min-width: 38mm;
+      border-left: .5pt solid #DCE3EE; padding-left: 3mm;
+    }
+    .pr-to-kv span {
+      display: block; font-size: 6.2pt; text-transform: uppercase;
+      letter-spacing: .08em; color: #8892A8;
+    }
+    .pr-to-kv strong { font-size: 8pt; color: #27306D; font-weight: 700; }
+
+    .pr-lead {
+      font-size: 8.4pt; line-height: 1.55; color: #2A3450; text-align: justify;
+      padding: 0 .5mm;
+    }
+
+    .pr-grid { display: grid; grid-template-columns: 56% 1fr; gap: 3mm; flex: 1; align-items: start; }
+    .pr-col { display: flex; flex-direction: column; gap: 2.6mm; min-width: 0; }
+
+    .pr-block { break-inside: avoid; }
+    .pr-h {
+      font-size: 7.6pt; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .09em; color: #27306D;
+      padding-bottom: 1.1mm; margin-bottom: 1.6mm;
+      border-bottom: .8pt solid #27306D;
+    }
+    .pr-text { font-size: 8pt; line-height: 1.5; color: #2A3450; text-align: justify; }
+    .pr-text p + p { margin-top: 1.4mm; }
+
+    .pr-facts {
+      list-style: none; margin-top: 1.8mm;
+      display: grid; grid-template-columns: 1fr 1fr; gap: .9mm 3mm;
+    }
+    .pr-facts li {
+      font-size: 7.3pt; color: #4A5570; line-height: 1.35;
+      padding-left: 2.6mm; position: relative;
+    }
+    .pr-facts li::before {
+      content: ''; position: absolute; left: 0; top: 1.05mm;
+      width: 1.5pt; height: 1.5pt; border-radius: 50%; background: #14639A !important;
+    }
+    .pr-facts strong { color: #27306D; font-weight: 700; }
+
+    .pr-scope { display: flex; flex-direction: column; gap: 1.5mm; }
+    .pr-item { display: flex; gap: 2mm; break-inside: avoid; }
+    .pr-item-mark {
+      flex: none; width: 2.6mm; height: 2.6mm; border-radius: 50%;
+      background: #E9EBF5 !important; color: #27306D !important;
+      font-size: 5.6pt; font-weight: 700; line-height: 2.6mm; text-align: center;
+      margin-top: .5mm;
+    }
+    .pr-item-txt { font-size: 7.8pt; line-height: 1.45; color: #3A455E; }
+    .pr-item-txt strong { color: #131A33; font-weight: 700; }
+
+    /* ── Caixa de investimento ── */
+    .pr-invest {
+      background-color: #232C63 !important;
+      background-image: linear-gradient(135deg, #1A2150, #27306D 58%, #14639A) !important;
+      border: .5pt solid #1A2150; border-radius: 5pt;
+      padding: 3.4mm 3.2mm; text-align: center; break-inside: avoid;
+    }
+    .pr-invest-label {
+      font-size: 6.6pt; text-transform: uppercase; letter-spacing: .1em;
+      color: #C6C8D6 !important; font-weight: 600;
+    }
+    .pr-invest-value {
+      font-size: 22pt; font-weight: 800; color: #fff !important;
+      letter-spacing: -.025em; line-height: 1.08; margin: 1.5mm 0 .8mm;
+    }
+    .pr-invest-sub { font-size: 7.2pt; color: #D3D5E0 !important; line-height: 1.4; }
+    .pr-invest-rows {
+      margin-top: 2.2mm; padding-top: 1.8mm; border-top: .5pt solid #4E568C;
+      display: flex; flex-direction: column; gap: 1mm; text-align: left;
+    }
+    .pr-invest-row {
+      display: flex; justify-content: space-between; gap: 2mm;
+      font-size: 7.2pt; color: #D9DBE6 !important;
+    }
+    .pr-invest-row strong { color: #fff !important; font-weight: 700; }
+    .pr-invest-row.hl strong { color: #B6F0DA !important; }
+
+    .pr-cond { list-style: none; display: flex; flex-direction: column; gap: 1.2mm; }
+    .pr-cond li {
+      font-size: 7.4pt; line-height: 1.4; color: #3A455E;
+      padding-left: 3mm; position: relative;
+    }
+    .pr-cond li::before {
+      content: '›'; position: absolute; left: .4mm; top: -.15mm;
+      color: #14639A; font-weight: 700; font-size: 8pt;
+    }
+
+    /* ── Aceite ── */
+    .pr-sign { margin-top: auto; padding-top: 1mm; break-inside: avoid; }
+    .pr-sign-txt { font-size: 7.6pt; color: #3A455E; line-height: 1.5; margin-bottom: 4mm; text-align: justify; }
+    .pr-sign-lines { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; }
+    .pr-sign-line { border-top: .6pt solid #9AA5BC; padding-top: 1.2mm; text-align: center; }
+    .pr-sign-name { display: block; font-size: 7.8pt; font-weight: 700; color: #27306D; }
+    .pr-sign-role { display: block; font-size: 6.6pt; color: #8892A8; margin-top: .3mm; }
+
+    /* ── Modo denso ────────────────────────────────────────────────────
+       Primeira reação a um documento comprido: tirar respiro das caixas
+       e encolher os elementos de exibição (valor do honorário, logo,
+       título) — que ocupam muitos milímetros e não são texto de leitura.
+       O corpo de texto é o último a ceder, e mesmo assim pouco. */
+    #print-page.pp-dense { --pp-gap: 1.9mm; gap: 1.9mm; }
+    .pp-dense .pp-hdr { padding-bottom: 1.7mm; }
+    .pp-dense .pp-hdr-logo { height: 24pt; }
+    .pp-dense .pp-hdr-center h1 { font-size: 11pt; }
+    .pp-dense .pp-hdr-center p, .pp-dense .pp-hdr-date { font-size: 7.2pt; }
+    .pp-dense .pp-body { gap: 2.4mm; }
+    .pp-dense .pp-left, .pp-dense .pp-right { gap: 1.7mm; }
+    .pp-dense .pp-section-head { padding: 1.1mm 2.2mm; font-size: 6.9pt; }
+    .pp-dense .pp-section-body { padding: 1.4mm 2.2mm; }
+    .pp-dense .pp-table td { padding: .85mm 0; font-size: 7.9pt; }
+    .pp-dense .pp-fee-box { padding: 2.4mm 3mm; }
+    .pp-dense .pp-fee-value { font-size: 18pt; margin: .9mm 0 .6mm; }
+    .pp-dense .pp-fee-label, .pp-dense .pp-fee-range { font-size: 6.8pt; }
+    .pp-dense .pp-fee-plan { margin-top: 1.2mm; padding-top: 1.1mm; font-size: 7pt; }
+    .pp-dense .pp-metrics { gap: 1.4mm; }
+    .pp-dense .pp-metric { padding: 1.1mm 1.2mm; }
+    .pp-dense .pp-metric-label { font-size: 6.2pt; }
+    .pp-dense .pp-metric-value { font-size: 9.2pt; }
+    .pp-dense .pp-tag { font-size: 6.9pt; padding: 1.1pt 4.4pt; }
+    .pp-dense .pp-validity { padding: 1.1mm 2.2mm; font-size: 6.9pt; }
+    .pp-dense .pp-obs { padding: 1.1mm 2.2mm; font-size: 7.3pt; }
+    .pp-dense .pp-footer { padding-top: 1.4mm; font-size: 6.9pt; }
+    .pp-dense .pp-erp-reason { font-size: 7.1pt; }
+
+    /* Denso da proposta: o texto corrido cede por último e só um pouco. */
+    .pp-dense .pr-to { padding: 1.7mm 2.4mm; }
+    .pp-dense .pr-to-name { font-size: 10.5pt; margin: .5mm 0 .4mm; }
+    .pp-dense .pr-to-meta { font-size: 7.1pt; }
+    .pp-dense .pr-lead { font-size: 8pt; line-height: 1.48; }
+    .pp-dense .pr-grid { gap: 2.4mm; }
+    .pp-dense .pr-col { gap: 2mm; }
+    .pp-dense .pr-h { font-size: 7.3pt; padding-bottom: .8mm; margin-bottom: 1.2mm; }
+    .pp-dense .pr-text { font-size: 7.7pt; line-height: 1.45; }
+    .pp-dense .pr-facts { margin-top: 1.3mm; gap: .7mm 2.4mm; }
+    .pp-dense .pr-facts li, .pp-dense .pr-cond li { font-size: 7.1pt; }
+    .pp-dense .pr-scope { gap: 1.1mm; }
+    .pp-dense .pr-item-txt { font-size: 7.5pt; line-height: 1.4; }
+    .pp-dense .pr-invest { padding: 2.4mm 2.6mm; }
+    .pp-dense .pr-invest-value { font-size: 17.5pt; margin: .9mm 0 .5mm; }
+    .pp-dense .pr-invest-label, .pp-dense .pr-invest-sub { font-size: 6.8pt; }
+    .pp-dense .pr-invest-rows { margin-top: 1.5mm; padding-top: 1.2mm; }
+    .pp-dense .pr-invest-row { font-size: 6.9pt; }
+    .pp-dense .pr-sign-txt { font-size: 7.3pt; margin-bottom: 2.8mm; }
 
     @media print {
-      @page { size: A4 portrait; margin: 10mm 11mm; }
+      @page { size: A4 portrait; margin: 9mm 10mm; }
 
+      html, body {
+        background: #fff !important; height: auto !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
       .app-header, .app-wrap, .toast { display: none !important; }
-      body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
+      /* Uma folha, sempre: nada aqui dentro pode gerar quebra de página. */
       #print-page {
-        display: flex !important; flex-direction: column;
-        width: 100%; font-family: 'Inter', Arial, sans-serif;
-        color: #131A33; font-size: 7.4pt; line-height: 1.38; gap: 3mm;
+        display: flex !important;
+        position: static !important;
+        break-inside: avoid; break-after: avoid; page-break-after: avoid;
       }
-
-      /* Modo cliente esconde tudo que é custo/margem interno */
-      body.print-cliente .only-interno { display: none !important; }
-
-      /* ── Header ── */
-      .pp-hdr {
-        display: flex; align-items: center; justify-content: space-between; gap: 4mm;
-        padding: 0 0 2.5mm; border-bottom: 1.2pt solid #27306D;
-      }
-      .pp-hdr-logo { height: 30pt; width: auto; }
-      .pp-hdr-center { text-align: center; flex: 1; }
-      .pp-hdr-center h1 { font-size: 12pt; font-weight: 800; color: #27306D !important; letter-spacing: -.3pt; }
-      .pp-hdr-center p { font-size: 6.8pt; color: #6B7794; margin-top: .6mm; }
-      .pp-hdr-date { text-align: right; font-size: 6.5pt; color: #97A2B8; min-width: 26mm; }
-      .pp-hdr-date strong { display: block; color: #27306D; font-size: 7.6pt; margin-bottom: .4mm; }
-
-      /* ── Corpo ── */
-      .pp-body { display: grid; grid-template-columns: 53% 1fr; gap: 3mm; flex: 1; }
-      .pp-left, .pp-right { display: flex; flex-direction: column; gap: 2.4mm; }
-
-      .pp-section { border: .5pt solid #E1E7F0; border-radius: 3.5pt; overflow: hidden; break-inside: avoid; }
-      .pp-section-head {
-        background: #F4F5FA !important; padding: 1.6mm 2.6mm;
-        border-bottom: .5pt solid #E1E7F0;
-        font-size: 6.2pt; font-weight: 800; text-transform: uppercase;
-        letter-spacing: .4pt; color: #27306D;
-      }
-      .pp-section-body { padding: 2mm 2.6mm; }
-
-      .pp-table { width: 100%; border-collapse: collapse; }
-      .pp-table tr:not(:last-child) td { border-bottom: .4pt solid #F1F4F9; }
-      .pp-table td { padding: 1.25mm 0; font-size: 7.2pt; vertical-align: top; }
-      .pp-table td:first-child { color: #6B7794; width: 55%; }
-      .pp-table td:last-child { font-weight: 600; color: #131A33; text-align: right; }
-      .pp-table td.strong { font-weight: 800; color: #27306D; }
-
-      .pp-tag {
-        display: inline-block; padding: 1.2pt 4.5pt; border-radius: 8pt;
-        font-size: 6.2pt; font-weight: 600; margin: 1pt 1.6pt 1pt 0;
-      }
-      .pp-tag-navy  { background: #E9EBF5 !important; color: #27306D; }
-      .pp-tag-blue  { background: #E4F1FA !important; color: #14639A; }
-      .pp-tag-green { background: #E6F7F1 !important; color: #0A7A54; }
-      .pp-tag-amber { background: #FFF6E5 !important; color: #8A5400; }
-
-      /* ── Caixa de honorário ── */
-      .pp-fee-box {
-        background: linear-gradient(135deg, #1A2150, #27306D 60%, #14639A) !important;
-        border-radius: 5pt; padding: 4mm 3.5mm; text-align: center; break-inside: avoid;
-      }
-      .pp-fee-label { font-size: 5.8pt; text-transform: uppercase; letter-spacing: .8pt; color: rgba(255,255,255,.55); font-weight: 700; }
-      .pp-fee-value { font-size: 21pt; font-weight: 900; color: #fff !important; letter-spacing: -1pt; line-height: 1.1; margin: 1.6mm 0 1mm; }
-      .pp-fee-range { font-size: 6.2pt; color: rgba(255,255,255,.62); }
-      .pp-fee-plan {
-        margin-top: 1.8mm; padding-top: 1.6mm; border-top: .5pt solid rgba(255,255,255,.18);
-        font-size: 6.4pt; color: #A7E8D1; font-weight: 700;
-      }
-
-      /* ── Métricas ── */
-      .pp-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8mm; }
-      .pp-metric { border: .5pt solid #E1E7F0; border-radius: 3.5pt; padding: 1.8mm 1.6mm; text-align: center; }
-      .pp-metric-label { font-size: 5.6pt; color: #6B7794; text-transform: uppercase; letter-spacing: .3pt; }
-      .pp-metric-value { font-size: 9pt; font-weight: 800; color: #27306D; margin-top: .8mm; }
-
-      .pp-validity {
-        border: .5pt solid #B9DBF1; background: #F2F8FD !important;
-        border-radius: 3.5pt; padding: 1.8mm 2.6mm;
-        font-size: 6.2pt; color: #14639A; text-align: center;
-      }
-      .pp-obs {
-        border: .5pt solid #E1E7F0; border-radius: 3.5pt; padding: 1.8mm 2.6mm;
-        font-size: 6.8pt; color: #3A455E; background: #F7F9FC !important;
-      }
-      .pp-footer {
-        display: flex; justify-content: space-between; align-items: center;
-        padding-top: 2mm; border-top: .5pt solid #E1E7F0;
-        font-size: 6.2pt; color: #97A2B8;
-      }
-      .pp-footer strong { color: #27306D; }
-      .pp-margin-good { color: #0A7A54 !important; font-weight: 800; }
-      .pp-margin-warn { color: #8A5400 !important; font-weight: 800; }
-      .pp-margin-bad  { color: #A82020 !important; font-weight: 800; }
-      .pp-breakdown-wrap { flex: 1; }
+      #print-page * { break-inside: avoid; }
     }
   </style>
 </head>
@@ -1117,7 +1430,7 @@
             <div class="field">
               <label class="label">
                 Nº de CNPJs / Filiais
-                <span class="tip" data-tip="Cada CNPJ adicional exige controles, conciliações e fechamentos próprios. Acrescenta esforço proporcional.">i</span>
+                <span class="tip" data-tip="Cada CNPJ adicional tem fechamento, conciliação e prestação de contas próprios — esforço fixo por empresa — além do trabalho de consolidar o grupo. O volume em si entra pelos campos de volumetria.">i</span>
               </label>
               <input type="number" id="qtd-cnpj" value="1" min="1" max="20">
             </div>
@@ -1128,8 +1441,20 @@
               </label>
               <input type="number" id="funcionarios" placeholder="0" min="0">
             </div>
+            <div class="field span2 hidden" id="base-volume-field">
+              <label class="label">
+                Como os números do grupo serão informados
+                <span class="tip" data-tip="Define se a volumetria dos próximos passos (contas, lançamentos, notas, faturamento, funcionários) já soma todas as empresas ou se vale para uma empresa típica. Na segunda opção o motor multiplica pelo número de CNPJs.">i</span>
+              </label>
+              <select id="base-volume">
+                <option value="grupo" selected>Total do grupo — já somei todas as empresas</option>
+                <option value="porcnpj">Por CNPJ — números de uma empresa típica</option>
+              </select>
+              <span class="hint" id="base-volume-hint"></span>
+            </div>
           </div>
 
+          <div class="info-box ib-navy hidden mt-14" id="multi-cnpj-info"></div>
           <div class="info-box ib-amber hidden" id="regime-info"></div>
 
         </div>
@@ -1620,15 +1945,90 @@
         </div>
         <div class="field mt-14">
           <label class="label">Observações <span class="opt">(opcional)</span></label>
-          <textarea id="obs" placeholder="Particularidades da operação, condições especiais negociadas, contexto adicional..."></textarea>
+          <textarea id="obs" data-nocalc placeholder="Particularidades da operação, condições especiais negociadas, contexto adicional..."></textarea>
         </div>
       </div>
     </div>
 
-    <!-- ⑩ CUSTOS, MARGEM & POLÍTICA ────────────────────────────────────── -->
+    <!-- ⑩ PROPOSTA AO CLIENTE ──────────────────────────────────────────── -->
+    <div class="card collapsible" id="card-proposta">
+      <div class="card-head" onclick="toggleCard('card-proposta')">
+        <div class="card-step">10</div>
+        <div class="card-icon ci-blue">🤝</div>
+        <div class="card-head-info">
+          <h3>Proposta ao Cliente</h3>
+          <p>Texto por extenso que personaliza o PDF no modo Cliente</p>
+        </div>
+        <div class="card-toggle">▼</div>
+      </div>
+      <div class="card-body">
+
+        <div class="info-box ib-blue mb-14">
+          <span>🤝</span>
+          <span>Com o botão <strong>🤝 Cliente</strong> ativo, o PDF deixa de ser o diagnóstico interno e passa a ser uma <strong>Proposta de Prestação de Serviços</strong>. Todos os campos abaixo são opcionais — <strong>o que ficar em branco é redigido automaticamente</strong> a partir do diagnóstico. O que você escrever aqui substitui o texto automático.</span>
+        </div>
+
+        <div class="g g4">
+          <div class="field">
+            <label class="label">A/C — destinatário <span class="opt">(opcional)</span></label>
+            <input type="text" id="prop-ac" data-nocalc autocomplete="off" placeholder="Sr. João Silva — Diretor">
+          </div>
+          <div class="field">
+            <label class="label">Responsável pela proposta</label>
+            <input type="text" id="prop-resp" data-nocalc autocomplete="off" placeholder="Nome de quem assina">
+          </div>
+          <div class="field">
+            <label class="label">
+              Validade da proposta
+              <span class="tip" data-tip="Dias de validade contados da data de emissão. Aparece no cabeçalho e nas condições comerciais.">i</span>
+            </label>
+            <input type="number" id="prop-validade" data-nocalc value="15" min="1" max="180">
+          </div>
+          <div class="field">
+            <label class="label">Início previsto <span class="opt">(opcional)</span></label>
+            <input type="text" id="prop-inicio" data-nocalc autocomplete="off" placeholder="Ex.: 1º de outubro">
+          </div>
+        </div>
+
+        <div class="field mt-14">
+          <label class="label">
+            Mensagem de abertura <span class="opt">(opcional)</span>
+            <span class="tip" data-tip="Parágrafo que abre a proposta. Em branco, geramos uma abertura com o nome da empresa e o contexto do diagnóstico.">i</span>
+          </label>
+          <textarea id="prop-abertura" data-nocalc style="min-height:72px;" placeholder="Ex.: Agradecemos a oportunidade de apresentar nossa proposta de BPO Financeiro. O escopo abaixo foi desenhado a partir da reunião de diagnóstico realizada com a diretoria..."></textarea>
+        </div>
+
+        <div class="field mt-14">
+          <label class="label">
+            Sobre a empresa — entendimento da operação <span class="opt">(opcional)</span>
+            <span class="tip" data-tip="Descreva por extenso o negócio do cliente, a estrutura atual do financeiro e as dores que a proposta resolve. Em branco, montamos um resumo com regime, porte, CNPJs, contas e plataformas informados.">i</span>
+          </label>
+          <textarea id="prop-contexto" data-nocalc style="min-height:92px;" placeholder="Ex.: A empresa atua na distribuição de materiais elétricos em Belo Horizonte, com duas filiais e faturamento concentrado em vendas B2B a prazo. Hoje o financeiro é conduzido por uma assistente administrativa sem rotina de conciliação diária, o que gera atraso no fechamento e falta de visibilidade de caixa..."></textarea>
+        </div>
+
+        <div class="field mt-14">
+          <label class="label">
+            Detalhamento dos serviços por extenso <span class="opt">(opcional)</span>
+            <span class="tip" data-tip="Uma linha por entrega. Substitui a descrição automática dos serviços marcados no escopo.">i</span>
+          </label>
+          <textarea id="prop-escopo" data-nocalc style="min-height:104px;" placeholder="Uma linha por item. Ex.:&#10;Contas a pagar — conferência, agendamento e pagamento de até 180 títulos/mês, com aprovação prévia do cliente&#10;Conciliação bancária diária das 3 contas correntes e 2 adquirentes&#10;Fechamento mensal com DRE gerencial até o 10º dia útil"></textarea>
+        </div>
+
+        <div class="field mt-14">
+          <label class="label">
+            Condições comerciais adicionais <span class="opt">(opcional)</span>
+            <span class="tip" data-tip="Uma linha por condição. Entram junto com as condições padrão (vigência, reajuste, pagamento e validade).">i</span>
+          </label>
+          <textarea id="prop-condicoes" data-nocalc style="min-height:72px;" placeholder="Uma linha por condição. Ex.:&#10;Pagamento por boleto até o 5º dia útil do mês subsequente&#10;Reajuste anual pelo IPCA acumulado&#10;Volumes 20% acima do contratado ensejam revisão de escopo"></textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ⑪ CUSTOS, MARGEM & POLÍTICA ────────────────────────────────────── -->
     <div class="card collapsible collapsed" id="card-params">
       <div class="card-head" onclick="toggleCard('card-params')">
-        <div class="card-step">10</div>
+        <div class="card-step">11</div>
         <div class="card-icon ci-slate">🧮</div>
         <div class="card-head-info">
           <h3>Custos, Margem & Política de Preço</h3>
@@ -2010,6 +2410,8 @@
     </div>
   </div>
 
+  <!-- ── DOCUMENTO INTERNO: diagnóstico de precificação ── -->
+  <div id="pp-doc-diag">
   <div class="pp-body">
 
     <!-- Coluna esquerda -->
@@ -2037,7 +2439,7 @@
             <tr><td>Situação</td><td id="pp-erp-status">—</td></tr>
             <tr><td>Licença</td><td id="pp-erp-lic">—</td></tr>
           </table>
-          <div id="pp-erp-reason" style="margin-top:1.6mm;font-size:6.6pt;color:#3A455E;line-height:1.4;"></div>
+          <div class="pp-erp-reason" id="pp-erp-reason"></div>
         </div>
       </div>
 
@@ -2048,17 +2450,17 @@
         </div>
       </div>
 
-      <div class="pp-section">
+      <div class="pp-section pp-movable">
         <div class="pp-section-head">Plataformas de Vendas & Recebimento</div>
         <div class="pp-section-body"><div id="pp-plat"></div></div>
       </div>
 
-      <div class="pp-section">
+      <div class="pp-section pp-movable">
         <div class="pp-section-head">Escopo de Serviços Contratados</div>
         <div class="pp-section-body"><div id="pp-services"></div></div>
       </div>
 
-      <div class="pp-obs" id="pp-obs-wrap" style="display:none;">
+      <div class="pp-obs pp-tail" id="pp-obs-wrap" style="display:none;">
         <strong>Observações:</strong> <span id="pp-obs"></span>
       </div>
 
@@ -2110,14 +2512,14 @@
         </div>
       </div>
 
-      <div class="pp-section" id="pp-setup-wrap" style="display:none;">
+      <div class="pp-section pp-movable" id="pp-setup-wrap" style="display:none;">
         <div class="pp-section-head">Investimento de Implantação</div>
         <div class="pp-section-body">
           <table class="pp-table"><tbody id="pp-setup-body"></tbody></table>
         </div>
       </div>
 
-      <div class="pp-section">
+      <div class="pp-section pp-movable">
         <div class="pp-section-head">Condições Comerciais</div>
         <div class="pp-section-body">
           <table class="pp-table">
@@ -2130,12 +2532,91 @@
         </div>
       </div>
 
-      <div class="pp-validity">
-        Proposta válida por <strong>30 dias</strong> a partir da data de emissão.
+      <div class="pp-validity pp-tail">
+        Proposta válida por <strong id="pp-validity-days">30 dias</strong> a partir da data de emissão.
       </div>
 
     </div>
   </div>
+  </div><!-- /pp-doc-diag -->
+
+  <!-- ── DOCUMENTO AO CLIENTE: proposta de prestação de serviços ── -->
+  <div id="pp-doc-prop">
+
+    <div class="pr-to">
+      <div class="pr-to-main">
+        <div class="pr-to-label">Proposta apresentada a</div>
+        <div class="pr-to-name" id="pr-empresa">—</div>
+        <div class="pr-to-meta" id="pr-meta">—</div>
+      </div>
+      <div class="pr-to-side">
+        <div class="pr-to-kv"><span>Proposta nº</span><strong id="pr-num">—</strong></div>
+        <div class="pr-to-kv"><span>Validade</span><strong id="pr-validade">—</strong></div>
+        <div class="pr-to-kv" id="pr-inicio-wrap"><span>Início previsto</span><strong id="pr-inicio">—</strong></div>
+      </div>
+    </div>
+
+    <div class="pr-lead" id="pr-lead"></div>
+
+    <div class="pr-grid">
+
+      <div class="pr-col">
+
+        <section class="pr-block">
+          <h2 class="pr-h">Entendimento da operação</h2>
+          <div class="pr-text" id="pr-contexto"></div>
+          <ul class="pr-facts" id="pr-facts"></ul>
+        </section>
+
+        <section class="pr-block">
+          <h2 class="pr-h">Escopo dos serviços</h2>
+          <div class="pr-scope" id="pr-escopo"></div>
+        </section>
+
+        <section class="pr-block" id="pr-obs-wrap" style="display:none;">
+          <h2 class="pr-h">Observações</h2>
+          <div class="pr-text" id="pr-obs"></div>
+        </section>
+
+      </div>
+
+      <div class="pr-col">
+
+        <div class="pr-invest">
+          <div class="pr-invest-label">Investimento mensal</div>
+          <div class="pr-invest-value" id="pr-fee">R$ —</div>
+          <div class="pr-invest-sub" id="pr-fee-sub">—</div>
+          <div class="pr-invest-rows" id="pr-invest-rows"></div>
+        </div>
+
+        <section class="pr-block">
+          <h2 class="pr-h">Rotina de trabalho</h2>
+          <table class="pp-table"><tbody id="pr-rotina-body"></tbody></table>
+        </section>
+
+        <section class="pr-block">
+          <h2 class="pr-h">Condições comerciais</h2>
+          <ul class="pr-cond" id="pr-cond"></ul>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="pr-sign">
+      <div class="pr-sign-txt" id="pr-fecho"></div>
+      <div class="pr-sign-lines">
+        <div class="pr-sign-line">
+          <span class="pr-sign-name" id="pr-sign-resp">Empresarial — BPO Financeiro</span>
+          <span class="pr-sign-role" id="pr-sign-resp-role">Pela contratada · assinatura e data</span>
+        </div>
+        <div class="pr-sign-line">
+          <span class="pr-sign-name" id="pr-sign-cli">Cliente</span>
+          <span class="pr-sign-role" id="pr-sign-cli-role">De acordo · assinatura e data</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pp-doc-prop -->
 
   <div class="pp-footer">
     <div><strong>Empresarial</strong> · BPO Financeiro · Belo Horizonte — MG</div>
@@ -2241,6 +2722,40 @@ const SLA_INFO = { padrao:{hrs:0,label:'Padrão'}, dedicado:{hrs:1.5,label:'Cana
 const CONTRATO_DESC = { mensal:0, semestral:0.05, anual:0.10 };
 const ERP_STATUS = { novo:{mult:1.00,label:'Implantação do zero'}, migracao:{mult:1.40,label:'Migração de outro sistema'}, existente:{mult:0.40,label:'Já utiliza — ajustes'} };
 
+/* ── Grupo econômico: múltiplos CNPJs ──────────────────────────────────
+   Quantidade de empresas e volume são coisas diferentes e entram por
+   portas diferentes:
+
+     · VOLUME — lançamentos, notas, contas: vem da volumetria dos passos
+       seguintes. Se os números informados forem de uma empresa típica,
+       o seletor "Como os números do grupo serão informados" manda o
+       motor multiplicá-los pelo número de CNPJs.
+
+     · ESFORÇO FIXO POR EMPRESA — fechamento próprio, conferência de
+       saldos, prestação de contas e relatórios de cada CNPJ: não depende
+       do volume, depende de existir mais uma empresa. Entra como horas
+       fixas, uma vez por CNPJ adicional.
+
+     · COORDENAÇÃO DO GRUPO — identificar a que empresa pertence cada
+       lançamento, transferências entre empresas e consolidação: incide
+       sobre toda a rotina, então é multiplicador. Modesto e com teto,
+       porque satura: a 8ª empresa não acrescenta o que a 2ª acrescentou.
+
+   Multiplicar TUDO por 35% a cada CNPJ, como antes, cobrava o volume
+   duas vezes e explodia em grupos grandes (10 CNPJs = 4,15× as horas).
+   PARAMETRIZÁVEL: são as três alavancas do modelo de grupo.            */
+const CNPJ_MAX   = 20;
+const CNPJ_EXTRA = {        /* horas/mês por CNPJ ADICIONAL */
+  base:     1.6,            /* fechamento, saldos e prestação de contas próprios */
+  dre:      0.8,            /* um DRE por empresa, mais o consolidado */
+  relat:    0.5,            /* relatórios gerenciais por empresa */
+  fluxo:    0.6,            /* posição de caixa por empresa */
+  contador: 0.5,            /* pacote contábil por empresa */
+  planilha: 0.6,            /* consolidação fora do ERP (Conta Azul não faz) */
+};
+const CNPJ_COORD     = 0.10;   /* + 10% de rotina por CNPJ adicional */
+const CNPJ_COORD_MAX = 1.60;   /* teto do multiplicador de coordenação */
+
 /* ── Estado ────────────────────────────────────────────────────────────── */
 const state = {
   platforms: {},
@@ -2248,6 +2763,7 @@ const state = {
   needs:     {},
   erp:       'ca',
   erpManual: false,
+  multiAuto: false,   /* `multicnpj` foi marcada pelo nº de CNPJs, não pelo usuário */
   printMode: 'interno',
   simulado:  null,   /* valor arrastado na barra de negociação; null = recomendado */
   last:      null,
@@ -2261,6 +2777,12 @@ const $n = id => parseFloat((el(id)?.value||'').replace(/\./g,'').replace(',','.
 const $i = id => parseInt(el(id)?.value) || 0;
 const $s = id => el(id)?.value || '';
 const $f = id => parseFloat((el(id)?.value||'').replace(',','.')) || 0;
+/* Fonte única da verdade do grupo: o campo numérico, sempre limitado.
+   O `max` do HTML só governa as setinhas — digitar 50 passava direto. */
+const qtdCnpjs = () => clamp($i('qtd-cnpj') || 1, 1, CNPJ_MAX);
+/* Converte a volumetria informada em volumetria do grupo. */
+const fatorVolume = () => ($s('base-volume') === 'porcnpj' ? qtdCnpjs() : 1);
+
 const isSvc  = id => !!state.services[id];
 const isPlat = id => !!state.platforms[id];
 const isNeed = id => !!state.needs[id];
@@ -2340,9 +2862,12 @@ function toast(msg) {
    RENDER
    ═══════════════════════════════════════════════════════════════════════ */
 function renderNeeds() {
+  /* Re-render precisa refletir o estado: a marcação de multi-CNPJ vem do
+     motor, não só do clique, e antes disso um re-render apagava da tela
+     tudo o que já estava marcado. */
   el('need-grid').innerHTML = NEEDS.map(n => `
-    <div class="need-item" id="nd-${n.id}" onclick="toggleNeed('${n.id}')">
-      <div class="need-check" id="ndc-${n.id}"></div>
+    <div class="need-item ${isNeed(n.id) ? 'on' : ''}" id="nd-${n.id}" onclick="toggleNeed('${n.id}')">
+      <div class="need-check" id="ndc-${n.id}">${isNeed(n.id) ? '✓' : ''}</div>
       <span class="need-label">${n.label}</span>
     </div>`).join('');
 }
@@ -2402,13 +2927,19 @@ function scoreERP() {
     else if (n.ca - n.omie >= 2) drivers.push({ dir:'ca', label:n.label });
   });
 
-  /* Sinais estruturais somam ao diagnóstico, mesmo sem marcação explícita */
-  const cnpjs = Math.max(1, $i('qtd-cnpj'));
-  if (cnpjs > 1) { omie += 3; drivers.push({ dir:'omie', label:`${cnpjs} CNPJs sob gestão consolidada` }); }
+  /* Sinais estruturais somam ao diagnóstico, mesmo sem marcação explícita.
+     Multi-CNPJ já entra pela necessidade `multicnpj` (marcada automaticamente
+     quando há mais de um CNPJ): aqui só o que a marcação não expressa — o
+     tamanho do grupo, que a partir da 3ª empresa muda o patamar. */
+  const cnpjs = qtdCnpjs();
+  if (cnpjs > 2) {
+    omie += Math.min(3, cnpjs - 2);
+    drivers.push({ dir:'omie', label:`Grupo de ${cnpjs} CNPJs em visão consolidada` });
+  }
   if ($s('regime') === 'real') { omie += 2; drivers.push({ dir:'omie', label:'Lucro Real exige controles e rastreabilidade mais profundos' }); }
   if (isSvc('ccusto'))   { omie += 2; }
   if (isSvc('orcamento')){ omie += 1; }
-  const fat = $n('faturamento');
+  const fat = $n('faturamento') * fatorVolume();   /* sempre na escala do grupo */
   if (fat > 0 && fat < 100000) { ca += 2; drivers.push({ dir:'ca', label:'Porte compatível com uma solução leve e de baixo custo' }); }
   if (fat > 1500000) { omie += 2; drivers.push({ dir:'omie', label:'Volume financeiro pede um ERP com mais governança' }); }
 
@@ -2513,10 +3044,16 @@ function complexityScore(v) {
   const fat = v.fat;
   add(fat > 5000000 ? 12 : fat > 2000000 ? 9 : fat > 1000000 ? 6 : fat > 500000 ? 4 : fat > 200000 ? 2 : 0, 'porte de faturamento');
   add(REGIME_INFO[v.regime]?.cx || 0, 'regime tributário');
-  add(clamp((v.cnpjs - 1) * 4, 0, 10), 'múltiplos CNPJs');
+  add(clamp((v.cnpjs - 1) * 3.5, 0, 12), 'múltiplos CNPJs');
 
   let needCx = 0;
-  NEEDS.forEach(n => { if (isNeed(n.id)) needCx += n.cx; });
+  /* `multicnpj` é marcada pelo próprio nº de CNPJs: contar aqui também
+     seria pontuar o mesmo fato duas vezes. */
+  NEEDS.forEach(n => {
+    if (!isNeed(n.id)) return;
+    if (n.id === 'multicnpj' && v.cnpjs > 1) return;
+    needCx += n.cx;
+  });
   add(clamp(needCx, 0, 12), 'exigências estruturais do ERP');
 
   add(clamp(v.platManual * 2, 0, 8), 'plataformas sem integração nativa');
@@ -2543,17 +3080,37 @@ function tierFromScore(score) {
 function calculate() {
   const P = readParams();
 
-  /* ── Leitura da volumetria ── */
+  /* ── Leitura da volumetria ──
+     `kVol` traduz o que foi digitado para a escala do grupo: vale 1 quando
+     os números já somam todas as empresas e vale o nº de CNPJs quando são
+     de uma empresa típica. Daqui para baixo, todo `v` é grupo. */
+  const cnpjs = qtdCnpjs();
+  const kVol  = fatorVolume();
+  const q = (id) => Math.round($i(id) * kVol);
   const v = {
     regime: $s('regime'), org: $s('organizacao'), sla: $s('sla'),
-    fat: $n('faturamento'), cnpjs: Math.max(1, $i('qtd-cnpj')),
-    funcionarios: $i('funcionarios'),
-    cc: $i('q-cc'), aa: $i('q-aa'), cdb: $i('q-cdb'), cart: $i('q-cart'), adq: $i('q-adq'),
-    nfe: $i('nf-emitidas'), nfr: $i('nf-recebidas'),
-    cpLanc: $i('cp-lanc'), crLanc: $i('cr-lanc'), boletos: $i('cr-boletos'),
+    fat: $n('faturamento') * kVol, cnpjs,
+    volFator: kVol, volBase: kVol > 1 ? 'porcnpj' : 'grupo',
+    funcionarios: q('funcionarios'),
+    cc: q('q-cc'), aa: q('q-aa'), cdb: q('q-cdb'), cart: q('q-cart'), adq: q('q-adq'),
+    nfe: q('nf-emitidas'), nfr: q('nf-recebidas'),
+    cpLanc: q('cp-lanc'), crLanc: q('cr-lanc'), boletos: q('cr-boletos'),
     platManual: 0, contasTot: 0,
   };
   v.contasTot = v.cc + v.aa + v.cdb + v.cart + v.adq;
+
+  /* Havendo grupo, a necessidade estrutural é fato, não opinião: o campo
+     numérico marca a necessidade para que ERP, complexidade e horas leiam
+     a mesma informação — uma vez só, cada um no seu lugar. */
+  if (v.cnpjs > 1 && !state.needs.multicnpj) {
+    state.needs.multicnpj = true;
+    state.multiAuto = true;               /* marcação do motor, não do usuário */
+    renderNeeds();
+  } else if (v.cnpjs === 1 && state.multiAuto && state.needs.multicnpj) {
+    state.needs.multicnpj = false;        /* desfaz só o que o motor marcou */
+    state.multiAuto = false;
+    renderNeeds();
+  }
 
   /* ── Sistema: automático até o usuário escolher manualmente ── */
   const sc = scoreERP();
@@ -2630,10 +3187,12 @@ function calculate() {
   const contornoLabels = [];
   NEEDS.forEach(n => {
     if (!n.heavy || !isNeed(n.id)) return;
+    /* O contorno de multi-CNPJ tem linha própria (gestão do grupo), com
+       hora por empresa em vez de uma hora só para o grupo inteiro. */
+    if (n.id === 'multicnpj' && v.cnpjs > 1) return;
     const fit = n[sys];                       // aderência do sistema à necessidade
     if (fit <= 1) { hContorno += 1.5; contornoLabels.push(n.label); }
   });
-  if (v.cnpjs > 1 && sys === 'ca') hContorno += (v.cnpjs - 1) * 1.0;
   push('Controles paralelos (fora do ERP)', '📑', hContorno);
 
   /* SLA */
@@ -2649,10 +3208,29 @@ function calculate() {
   const mRegime = REGIME_INFO[v.regime]?.mult || 1.0;
   const mOrg    = ORG_INFO[v.org]?.mult || 1.0;
   const mErp    = erp.operMult;
-  const mCnpj   = 1 + 0.35 * (v.cnpjs - 1);
+  /* Coordenação do grupo: incide sobre a rotina inteira, mas satura. */
+  const mCnpj   = Math.min(CNPJ_COORD_MAX, 1 + CNPJ_COORD * (v.cnpjs - 1));
   const mult    = mRegime * mOrg * mErp * mCnpj;
 
   items.forEach(i => { i.hrs = i.hrs * mult; });
+
+  /* Esforço fixo de cada empresa adicional: fechamento, conciliação de
+     saldos e prestação de contas próprios, mais o que o escopo exigir por
+     empresa. Entra DEPOIS dos multiplicadores — multiplicar por `mCnpj`
+     seria cobrar o grupo duas vezes — mas carrega regime e organização,
+     que pesam no fechamento de cada uma. */
+  const grupo = { porEmpresa: 0, horas: 0, coord: mCnpj, itens: [] };
+  if (v.cnpjs > 1) {
+    const soma = (h, label) => { grupo.porEmpresa += h; grupo.itens.push(label); };
+    soma(CNPJ_EXTRA.base, 'fechamento e prestação de contas próprios');
+    if (isSvc('dre'))      soma(CNPJ_EXTRA.dre,      'DRE por empresa');
+    if (isSvc('relat'))    soma(CNPJ_EXTRA.relat,    'relatórios por empresa');
+    if (isSvc('fluxo'))    soma(CNPJ_EXTRA.fluxo,    'posição de caixa por empresa');
+    if (isSvc('contador')) soma(CNPJ_EXTRA.contador, 'pacote contábil por empresa');
+    if (sys === 'ca')      soma(CNPJ_EXTRA.planilha, 'consolidação fora do ERP');
+    grupo.horas = grupo.porEmpresa * (v.cnpjs - 1) * mRegime * mOrg;
+    push(`Gestão do grupo — ${v.cnpjs} CNPJs`, '🏢', grupo.horas);
+  }
 
   /* Adicional por porte de faturamento (esforço de análise, não de digitação) */
   const addFat = v.fat > 5000000 ? 4 : v.fat > 1000000 ? 2 : 0;
@@ -2760,8 +3338,8 @@ function calculate() {
   const hasData = hTotal > 0;
 
   const result = {
-    hasData, P, v, sys, erp, sc, items, alloc, custoHora,
-    hOper, hSup, hReun, hTotal, mult, cx: cxr, base, sup,
+    hasData, P, v, sys, erp, sc, items, alloc, custoHora, grupo,
+    hOper, hSup, hReun, hTotal, mult, mCnpj, cx: cxr, base, sup,
     custoDireto, custoTotal, breakEven, precoAlvo, mercado,
     feeIdeal, feeFloor, feeCeil, effRate, lucro, margem, desconto,
     setup, setupDiluido, crit, fails, planoStatus, planoMargem, planoLucro,
@@ -3079,6 +3657,8 @@ function updateUI(R) {
     rq.classList.remove('show');
   }
 
+  renderMultiCnpj(R);
+
   /* ── Completude ── */
   const cpct = calcCompleteness();
   el('cp-pct').textContent = `${cpct}%`;
@@ -3213,6 +3793,12 @@ function toggleService(id) {
   calculate();
 }
 function toggleNeed(id) {
+  /* Multi-CNPJ é consequência do nº de CNPJs, não uma escolha à parte:
+     desmarcar aqui só confundiria o diagnóstico. */
+  if (id === 'multicnpj' && qtdCnpjs() > 1 && state.needs[id]) {
+    toast('Marcado pelo nº de CNPJs informado no passo 1.');
+    return;
+  }
   state.needs[id] = !state.needs[id];
   el(`nd-${id}`).classList.toggle('on', !!state.needs[id]);
   el(`ndc-${id}`).textContent = state.needs[id] ? '✓' : '';
@@ -3229,9 +3815,9 @@ function setPrintMode(m) {
   state.printMode = m;
   el('seg-interno').classList.toggle('on', m === 'interno');
   el('seg-cliente').classList.toggle('on', m === 'cliente');
-  el('seg-hint').textContent = m === 'interno'
-    ? 'Modo interno: imprime custo, margem e alocação de equipe.'
-    : 'Modo cliente: oculta custos, margem e alocação — só escopo e honorário.';
+  el('seg-hint').innerHTML = m === 'interno'
+    ? 'Modo interno: diagnóstico completo com custo, margem e alocação de equipe.'
+    : 'Modo cliente: gera a <strong>Proposta de Prestação de Serviços</strong> — personalize os textos no passo 10.';
 }
 
 /* ── Máscaras ──────────────────────────────────────────────────────────── */
@@ -3257,6 +3843,9 @@ function bindCalcListeners() {
     if (e.id === 'cnpj') return;
     if (e.id === 'sim-range') return;            /* a barra simula, não recalcula */
     if (e.dataset.mask === 'currency') return;   /* já tratado na máscara */
+    /* Campos de texto do documento não entram na conta — e recalcular a
+       cada tecla descartaria o valor simulado na barra de negociação. */
+    if (e.dataset.nocalc !== undefined) return;
     e.addEventListener('input',  calculate);
     e.addEventListener('change', calculate);
   });
@@ -3265,6 +3854,38 @@ function bindCalcListeners() {
   el('erp-licenca').addEventListener('change', onLicencaChange);
   el('sim-range').addEventListener('input', onArrastar);
   el('p-ocupacao').addEventListener('input', renderCostTable);
+}
+
+/* Torna visível o que o nº de CNPJs faz com o cálculo. Sem isto o campo é
+   um número que mexe no preço por motivos invisíveis — e o preço de um
+   grupo é justamente o que mais precisa ser defendido na negociação. */
+function renderMultiCnpj(R) {
+  const n = R.v.cnpjs;
+  const g = R.grupo || { porEmpresa: 0, horas: 0, itens: [] };
+  el('base-volume-field').classList.toggle('hidden', n < 2);
+
+  const box = el('multi-cnpj-info');
+  if (n < 2) { box.classList.add('hidden'); el('base-volume-hint').textContent = ''; return; }
+  box.classList.remove('hidden');
+
+  const pct   = Math.round((R.mCnpj - 1) * 100);
+  const teto  = R.mCnpj >= CNPJ_COORD_MAX ? ' (no teto do modelo)' : '';
+  const lancs = R.v.cpLanc + R.v.crLanc;
+  box.innerHTML =
+    `<span>🏢</span><span><strong>Grupo com ${n} CNPJs.</strong> ` +
+    `Cada empresa adicional soma <strong>${fmtH(g.porEmpresa)}</strong> de esforço fixo ` +
+    `(${g.itens.join(', ')}) — <strong>${fmtH(g.horas)}</strong> no total — e a coordenação do grupo ` +
+    `acrescenta <strong>+${pct}%</strong> sobre a rotina${teto}. ` +
+    (R.v.volFator > 1
+      ? `A volumetria digitada é de <strong>uma empresa</strong> e foi multiplicada por ${n}: ` +
+        `${lancs} lançamentos, ${R.v.contasTot} contas e ${R.v.nfe + R.v.nfr} notas no grupo.`
+      : `A volumetria digitada é lida como <strong>total do grupo</strong>: ` +
+        `${lancs} lançamentos, ${R.v.contasTot} contas e ${R.v.nfe + R.v.nfr} notas.`) +
+    ` Custo, margem e política de preço seguem os mesmos do passo 11.</span>`;
+
+  el('base-volume-hint').textContent = R.v.volFator > 1
+    ? `Multiplicado por ${n} — os campos seguintes valem para uma empresa.`
+    : 'Some as ' + n + ' empresas nos campos de volumetria dos próximos passos.';
 }
 
 function onRegimeChange() {
@@ -3378,23 +3999,210 @@ function cnaeSetor(code) {
 /* ═══════════════════════════════════════════════════════════════════════
    IMPRESSÃO A4
    ═══════════════════════════════════════════════════════════════════════ */
-function doGenerate() {
+/* ── Ajuste para UMA folha ────────────────────────────────────────────
+   O documento é renderizado fora do viewport com a largura útil do A4 e
+   medido de verdade. Se estourar a altura da folha, a escala cai — e a
+   largura sobe junto (largura ÷ escala), então o texto se reorganiza em
+   vez de só encolher. Depois o laço tenta devolver escala, porque o
+   refluxo quase sempre libera mais espaço do que a conta linear previa.
+   Resultado: sempre 1 página, no maior tamanho de fonte que couber.     */
+const PP_W_MM     = 190;    /* 210mm − 2×10mm de margem lateral */
+const PP_H_MM     = 279;    /* 297mm − 2×9mm  de margem vertical */
+const PP_MIN_SCL  = 0.62;   /* piso de emergência. A garantia de 1 página vem
+                               primeiro, mas os passos anteriores existem para
+                               que a escala quase nunca precise chegar aqui */
+const PP_MAX_SCL  = 1.25;   /* diagnóstico curto não precisa deixar meia folha
+                               em branco: sobra de espaço vira fonte maior */
+const PP_PT_BASE  = 8.2;    /* corpo da tabela, densidade normal */
+const PP_PT_DENSO = 7.9;    /* corpo da tabela, modo denso */
+
+let ppSkipBeforePrint = false;
+let ppColunasOriginais = null;
+
+/* A medição só vale se a Inter já estiver carregada: medir com a fonte
+   de fallback e imprimir com a Inter dá métricas diferentes — é assim que
+   um documento "ajustado" acaba estourando ou saindo torto. */
+function ppFontesProntas() {
+  if (!document.fonts) return Promise.resolve();
+  return Promise.race([
+    document.fonts.ready,
+    new Promise(r => setTimeout(r, 1500)),   /* offline não pode travar a impressão */
+  ]);
+}
+
+/* ── Rebalanceamento de colunas ───────────────────────────────────────
+   Antes de encolher qualquer coisa, vale conferir se o documento não
+   está só mal distribuído: quando uma coluna sobra e a outra estoura, a
+   altura da página é a da coluna cheia. Mover uma seção da coluna alta
+   para a baixa é ganho de espaço que não custa nada em legibilidade. */
+function ppGuardaColunas(page) {
+  if (ppColunasOriginais) return;
+  const l = page.querySelector('.pp-left'), r = page.querySelector('.pp-right');
+  ppColunasOriginais = { l, r, left: [...l.children], right: [...r.children] };
+}
+
+function ppRestauraColunas() {
+  if (!ppColunasOriginais) return;
+  const { l, r, left, right } = ppColunasOriginais;
+  left.forEach(n => l.appendChild(n));
+  right.forEach(n => r.appendChild(n));
+}
+
+function ppBalanceia(page) {
+  const l = page.querySelector('.pp-left'), r = page.querySelector('.pp-right');
+  const alt = n => n.getBoundingClientRect().height;
+
+  for (let i = 0; i < 3; i++) {
+    const alta  = alt(l) >= alt(r) ? l : r;
+    const baixa = alta === l ? r : l;
+    /* move a última seção móvel visível da coluna alta */
+    const cand = [...alta.children].reverse().find(
+      n => n.classList.contains('pp-movable') && n.offsetParent !== null);
+    if (!cand) break;
+
+    const antes = Math.max(alt(l), alt(r));
+    const volta = cand.nextElementSibling;      /* para desfazer no lugar certo */
+    const fim = [...baixa.children].find(n => n.classList.contains('pp-tail'));
+    baixa.insertBefore(cand, fim || null);
+
+    if (Math.max(alt(l), alt(r)) >= antes) {    /* não melhorou: desfaz e para */
+      alta.insertBefore(cand, volta);
+      break;
+    }
+  }
+}
+
+function mmToPx(mm) {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;top:-9999px;left:-9999px;visibility:hidden;width:100mm;height:100mm;';
+  document.body.appendChild(probe);
+  const unit = probe.getBoundingClientRect().height / 100;
+  probe.remove();
+  return mm * (unit || 3.7795);
+}
+
+/* Mede a altura que o documento ocuparia na folha para uma dada escala. */
+function ppHeightAt(page, scale) {
+  page.style.setProperty('--pp-w', (PP_W_MM / scale).toFixed(3) + 'mm');
+  return page.getBoundingClientRect().height * scale;
+}
+
+/* Maior escala que ainda cabe na folha, para o estado atual do documento.
+   Desce enquanto estoura e sobe enquanto sobra — as duas direções são
+   necessárias porque a largura acompanha a escala e o texto reflui, então
+   a altura não é proporcional e não dá para calcular de primeira. */
+function ppEscalaQueCabe(page, avail) {
+  let scale = 1;
+  let h = ppHeightAt(page, scale);
+
+  for (let i = 0; i < 10 && h > avail && scale > PP_MIN_SCL; i++) {
+    scale = Math.max(PP_MIN_SCL, scale * (avail / h) * 0.995);
+    h = ppHeightAt(page, scale);
+  }
+  for (let i = 0; i < 10 && scale < PP_MAX_SCL; i++) {
+    const up = Math.min(PP_MAX_SCL, scale * 1.02);
+    if (ppHeightAt(page, up) > avail) { ppHeightAt(page, scale); break; }
+    scale = up;
+  }
+  return scale;
+}
+
+function fitPrintPage() {
+  const page = el('print-page');
+  if (!page) return 1;
+
+  const avail = PP_H_MM * mmToPx(1) * 0.995;   /* folga de segurança */
+  document.body.classList.add('pp-measuring');
+  ppGuardaColunas(page);
+
+  /* Duas candidaturas: densidade normal e modo denso. Cada uma ganha a
+     maior escala que ainda cabe na folha, e vence a que resultar no
+     maior corpo de texto impresso — não a que "coube primeiro". */
+  const candidata = densa => {
+    ppRestauraColunas();
+    page.classList.toggle('pp-dense', densa);
+    ppBalanceia(page);                    /* de graça: só redistribui seções */
+    const s = ppEscalaQueCabe(page, avail);
+    return { densa, escala: s, pt: (densa ? PP_PT_DENSO : PP_PT_BASE) * s };
+  };
+
+  const normal = candidata(false);
+  const densa  = candidata(true);
+  const venc   = densa.pt > normal.pt ? densa : normal;
+
+  if (!venc.densa) {                      /* refaz o estado da candidata vencedora */
+    ppRestauraColunas();
+    page.classList.remove('pp-dense');
+    ppBalanceia(page);
+  }
+  const scale = venc.escala;
+  ppHeightAt(page, scale);
+
+  document.body.classList.remove('pp-measuring');
+
+  /* Aplica: zoom refaz o layout (o navegador pagina certo); transform é
+     o plano B para quem ainda não suporta zoom. */
+  const canZoom = !!(window.CSS && CSS.supports && CSS.supports('zoom', '0.5'));
+  page.style.setProperty('--pp-w', (PP_W_MM / scale).toFixed(3) + 'mm');
+  page.style.setProperty('--pp-h', (PP_H_MM * 0.99 / scale).toFixed(3) + 'mm');
+  /* Vale para os dois lados: a largura foi compensada por `scale`, então
+     sem o zoom correspondente o documento sai estreito e transborda. */
+  if (Math.abs(scale - 1) > 0.002) {
+    page.style.setProperty(canZoom ? '--pp-zoom' : '--pp-transform',
+                           canZoom ? String(scale) : `scale(${scale})`);
+    page.style.removeProperty(canZoom ? '--pp-transform' : '--pp-zoom');
+  } else {
+    page.style.removeProperty('--pp-zoom');
+    page.style.removeProperty('--pp-transform');
+  }
+  return scale;
+}
+
+function preparePrint() {
+  const R = state.last || calculate();
+  if (!R.hasData) return null;
+  const cli = state.printMode === 'cliente';
+  /* A classe entra ANTES de medir: é ela que decide qual dos dois
+     documentos existe no fluxo — e só o que está no fluxo é medido. */
+  document.body.classList.toggle('print-cliente', cli);
+  populatePrint(R);
+  if (cli) populateProposta(R);
+  return fitPrintPage();
+}
+
+async function doGenerate() {
   const R = state.last || calculate();
   if (!R.hasData) { toast('Preencha o diagnóstico antes de gerar o documento.'); return; }
-  populatePrint(R);
-  document.body.classList.toggle('print-cliente', state.printMode === 'cliente');
+  await ppFontesProntas();
+  const scale = preparePrint();
+  ppSkipBeforePrint = true;
   window.print();
+  ppSkipBeforePrint = false;
+  if (scale !== null && scale < 0.9) {
+    const doc = state.printMode === 'cliente' ? 'Proposta extensa' : 'Diagnóstico extenso';
+    toast(`${doc}: texto reduzido a ${Math.round(scale * 100)}% para caber em 1 folha A4.`);
+  }
 }
+
+/* Ctrl+P direto no navegador recebe o mesmo tratamento do botão. */
+window.addEventListener('beforeprint', () => {
+  if (ppSkipBeforePrint) return;
+  preparePrint();
+});
 
 function populatePrint(R) {
   const P = R.P, v = R.v;
   const cli = state.printMode === 'cliente';
   const optText = id => { const e = el(id); return e.options[e.selectedIndex]?.text || '—'; };
 
-  el('pp-doc-title').textContent = cli ? 'Proposta de Honorários' : 'Diagnóstico de Precificação';
-  el('pp-doc-sub').textContent   = cli ? 'BPO Financeiro · Proposta comercial' : 'BPO Financeiro · Documento de uso interno';
-  el('pp-footer-mode').textContent = cli ? 'Proposta comercial' : 'Documento de uso interno';
+  const val = propValidade();
+  el('pp-doc-title').textContent = cli ? 'Proposta de Prestação de Serviços' : 'Diagnóstico de Precificação';
+  el('pp-doc-sub').textContent   = cli ? 'BPO Financeiro · Empresarial' : 'BPO Financeiro · Documento de uso interno';
+  el('pp-footer-mode').textContent = cli
+    ? `Proposta nº ${propNumero()} · válida até ${val.ateCurto}`
+    : 'Documento de uso interno';
   el('pp-date').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  el('pp-validity-days').textContent = val.dias + (val.dias > 1 ? ' dias' : ' dia');
 
   /* Cliente */
   el('pp-empresa').textContent = $s('razao-social') || 'Não informado';
@@ -3427,6 +4235,11 @@ function populatePrint(R) {
   if (v.boletos > 0) addRow('Boletos emitidos / mês', `${v.boletos}`);
   if (v.funcionarios > 0) addRow('Funcionários', `${v.funcionarios}`);
   addRow('Integração bancária', optText('integra-banco').split('—')[0].trim());
+  if (v.cnpjs > 1) {
+    addRow('Base dos números', v.volFator > 1
+      ? `Por CNPJ × ${v.cnpjs} empresas`
+      : `Total do grupo (${v.cnpjs} CNPJs)`);
+  }
   el('pp-vol-body').innerHTML = rows.length
     ? rows.map(([k,x]) => `<tr><td>${k}</td><td>${x}</td></tr>`).join('')
     : `<tr><td colspan="2" style="color:#97A2B8;">Não informado</td></tr>`;
@@ -3526,6 +4339,224 @@ function populatePrint(R) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   PROPOSTA DE PRESTAÇÃO DE SERVIÇOS (modo cliente)
+
+   O documento é montado em duas camadas:
+     1. Texto automático, derivado do diagnóstico — serve sozinho.
+     2. Texto escrito no cartão "Proposta ao Cliente" — quando existe,
+        SUBSTITUI a camada automática do bloco correspondente (exceto as
+        condições comerciais, que são somadas às condições padrão).
+   Assim a proposta nunca sai vazia e nunca engessa quem quer escrever.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Texto livre entra no documento como HTML: escapar é obrigatório. */
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+/* Linha em branco separa parágrafo; quebra simples vira <br>. */
+const escParas = t => String(t||'').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+  .map(p => `<p>${esc(p).replace(/\n/g,'<br>')}</p>`).join('');
+
+/* Uma linha = um item. Marcadores digitados à mão são descartados. */
+const escLinhas = t => String(t||'').split('\n')
+  .map(l => l.replace(/^\s*[-•–*·]\s*/,'').trim()).filter(Boolean);
+
+/* Número estável para a mesma empresa no mesmo mês. */
+function propNumero() {
+  const d = new Date();
+  const ym = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}`;
+  const cnpj = $s('cnpj').replace(/\D/g,'');
+  let suf = cnpj.length >= 8 ? cnpj.slice(4,8) : '';
+  if (!suf) {
+    const nome = $s('razao-social') || 'proposta';
+    let h = 7;
+    for (let i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) % 10000;
+    suf = String(h).padStart(4,'0');
+  }
+  return `${ym}-${suf}`;
+}
+
+function propValidade() {
+  const dias = clamp($i('prop-validade') || 15, 1, 180);
+  const ate  = new Date(Date.now() + dias * 86400000);
+  return {
+    dias,
+    ateCurto: ate.toLocaleDateString('pt-BR'),
+    ateLongo: ate.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}),
+  };
+}
+
+/* Descrição comercial de cada serviço — o `desc` do catálogo é rótulo de
+   interface, curto demais para um documento que o cliente assina. */
+const SVC_PROPOSTA = {
+  ap:       'Recebimento e conferência dos títulos, agendamento e execução dos pagamentos nos prazos, sempre com aprovação prévia do cliente.',
+  ar:       'Emissão e envio das cobranças, baixa dos recebimentos e controle diário da posição de contas a receber.',
+  conc:     'Conciliação das contas correntes, cartões e adquirentes, mantendo o saldo do sistema reconciliado com o extrato bancário.',
+  nf:       'Emissão de NF-e / NFS-e conforme a rotina comercial acordada, dentro dos prazos fiscais.',
+  folha:    'Apoio ao processo de folha: pagamento de salários, encargos e benefícios, com conferência das guias e dos prazos.',
+  cobranca: 'Régua de cobrança ativa: lembretes, contato com o cliente inadimplente e registro das negociações.',
+  fluxo:    'Fluxo de caixa atualizado e projeção de curto prazo, com alerta antecipado de necessidade de caixa.',
+  dre:      'Fechamento mensal com DRE gerencial e leitura das principais variações do período.',
+  relat:    'Relatórios gerenciais e indicadores mensais no formato combinado com a gestão.',
+  contador: 'Interface com a contabilidade: envio da documentação mensal e conciliação das informações contábeis.',
+  treasury: 'Gestão de tesouraria: posição diária, aplicações financeiras e projeção de disponibilidades.',
+  ccusto:   'Estrutura de centro de custo e rateio, com apuração de resultado por projeto, unidade ou departamento.',
+  orcamento:'Elaboração do orçamento e acompanhamento de orçado × realizado, com revisões periódicas.',
+  implant:  'Parametrização do sistema, carga dos saldos iniciais, migração das informações e desenho das rotinas de trabalho.',
+};
+
+function populateProposta(R) {
+  const P = R.P, v = R.v;
+  const optText = id => { const e = el(id); return e.options[e.selectedIndex]?.text || '—'; };
+  const empresa = $s('razao-social') || 'a empresa';
+  const val   = propValidade();
+  const preco = precoAtual(R);
+
+  /* ── Destinatário ── */
+  el('pr-empresa').textContent = $s('razao-social') || 'Cliente';
+  const meta = [];
+  if ($s('cnpj')) meta.push('CNPJ ' + $s('cnpj'));
+  if (v.regime)   meta.push(REGIME_INFO[v.regime]?.label);
+  if (v.cnpjs > 1) meta.push(`${v.cnpjs} CNPJs / filiais`);
+  const ac = $s('prop-ac').trim();
+  if (ac) meta.push('A/C ' + ac);
+  el('pr-meta').textContent = meta.filter(Boolean).join(' · ') || '—';
+
+  el('pr-num').textContent      = propNumero();
+  el('pr-validade').textContent = `${val.dias} dias · até ${val.ateCurto}`;
+  const inicio = $s('prop-inicio').trim();
+  el('pr-inicio-wrap').style.display = inicio ? '' : 'none';
+  el('pr-inicio').textContent = inicio;
+
+  /* ── Abertura ── */
+  const volResumo = [];
+  if (v.contasTot > 0) volResumo.push(`${v.contasTot} ${v.contasTot > 1 ? 'contas e cartões' : 'conta'}`);
+  if (v.cpLanc + v.crLanc > 0) volResumo.push(`${v.cpLanc + v.crLanc} lançamentos mensais`);
+  if (v.nfe + v.nfr > 0) volResumo.push(`${v.nfe + v.nfr} notas fiscais por mês`);
+  const abertura = $s('prop-abertura').trim();
+  el('pr-lead').innerHTML = abertura
+    ? escParas(abertura)
+    : `<p>Agradecemos a oportunidade de apresentar esta proposta de <strong>BPO Financeiro</strong> para ${esc(empresa)}. ` +
+      `O escopo, a rotina de trabalho e o investimento descritos a seguir foram dimensionados a partir do diagnóstico da sua operação` +
+      (volResumo.length ? ` — ${esc(volResumo.join(', '))} — ` : ' ') +
+      `e correspondem a uma dedicação mensal estimada de <strong>${fmtH(R.hTotal)}</strong> da nossa equipe.</p>`;
+
+  /* ── Entendimento da operação ── */
+  const contexto = $s('prop-contexto').trim();
+  if (contexto) {
+    el('pr-contexto').innerHTML = escParas(contexto);
+  } else {
+    const partes = [];
+    partes.push(`${esc(empresa)} opera sob ${esc(REGIME_INFO[v.regime]?.label || 'regime tributário a confirmar')}` +
+      (v.fat > 0 ? `, com faturamento médio mensal de <strong>${fmtBRL0(v.fat)}</strong>` : '') +
+      (v.cnpjs > 1 ? `, distribuído em <strong>${v.cnpjs} CNPJs</strong> que passam a ser acompanhados em visão consolidada` : '') + '.');
+    partes.push(`A rotina financeira será conduzida no <strong>${esc(R.erp.name)}</strong>` +
+      ($s('erp-status') === 'existente' ? ', já utilizado pela empresa' :
+       $s('erp-status') === 'migracao'  ? ', com migração a partir do sistema atual' : ', implantado por nossa equipe') +
+      `, com ${esc((optText('integra-banco').split('—')[0] || '').trim().toLowerCase() || 'integração bancária')} e fechamento mensal conduzido pela nossa equipe.`);
+    el('pr-contexto').innerHTML = `<p>${partes.join(' ')}</p>`;
+  }
+
+  const plats = PLATFORMS.filter(p => isPlat(p.id));
+  const facts = [
+    ['Regime tributário', REGIME_INFO[v.regime]?.label || '—'],
+    ...(v.fat > 0 ? [['Faturamento médio', fmtBRL0(v.fat)]] : []),
+    ['CNPJs sob gestão', String(v.cnpjs)],
+    ...(v.contasTot > 0 ? [['Contas e cartões', String(v.contasTot)]] : []),
+    ...(v.cpLanc + v.crLanc > 0 ? [['Lançamentos / mês', String(v.cpLanc + v.crLanc)]] : []),
+    ...(v.nfe + v.nfr > 0 ? [['Notas fiscais / mês', String(v.nfe + v.nfr)]] : []),
+    ...(v.funcionarios > 0 ? [['Funcionários', String(v.funcionarios)]] : []),
+    ...(plats.length ? [['Plataformas', plats.length > 2 ? `${plats.length} integradas` : plats.map(p => p.name).join(', ')]] : []),
+  ];
+  el('pr-facts').innerHTML = facts.map(([k,x]) =>
+    `<li>${esc(k)}: <strong>${esc(x)}</strong></li>`).join('');
+
+  /* ── Escopo ── */
+  const escopoLivre = escLinhas($s('prop-escopo'));
+  let itens;
+  if (escopoLivre.length) {
+    /* "Título — detalhe" vira título em negrito + detalhe; sem separador,
+       a linha inteira é o item. */
+    itens = escopoLivre.map(l => {
+      const m = l.match(/^(.{2,48}?)\s*[—–:]\s+(.+)$/);
+      if (!m) return esc(l);
+      const det = m[2].charAt(0).toUpperCase() + m[2].slice(1);   /* vira frase */
+      return `<strong>${esc(m[1])}.</strong> ${esc(det)}`;
+    });
+  } else {
+    itens = SERVICES.filter(s => isSvc(s.id) && (s.id !== 'implant' || P.cobraSetup !== 'nao'))
+      .map(s => `<strong>${esc(s.label)}.</strong> ${esc(SVC_PROPOSTA[s.id] || s.desc || '')}`);
+  }
+  if (!itens.length) itens = ['<strong>Escopo a definir.</strong> Nenhum serviço marcado no diagnóstico.'];
+  el('pr-escopo').innerHTML = itens.map(t =>
+    `<div class="pr-item"><span class="pr-item-mark">✓</span><span class="pr-item-txt">${t}</span></div>`).join('');
+
+  /* ── Observações (reaproveita o campo do diagnóstico) ── */
+  const obs = $s('obs').trim();
+  el('pr-obs-wrap').style.display = obs ? '' : 'none';
+  el('pr-obs').innerHTML = escParas(obs);
+
+  /* ── Investimento ── */
+  el('pr-fee').textContent = fmtBRL0(preco);
+  el('pr-fee-sub').textContent =
+    `${optText('contrato').split('—')[0].trim()} · ${fmtH(R.hTotal)} de dedicação mensal da equipe`;
+
+  const rows = [];
+  if (R.desconto > 0) {
+    rows.push(['Desconto de fidelidade', `${(R.desconto*100).toFixed(0)}% já aplicado`, true]);
+  }
+  if (R.setup.ativo && R.setup.horas > 0 && P.cobraSetup !== 'nao') {
+    rows.push(P.cobraSetup === 'diluido'
+      ? ['Implantação (12×)', fmtBRL0(R.setupDiluido) + '/mês']
+      : ['Implantação (parcela única)', fmtBRL0(R.setup.preco)]);
+  } else if (R.setup.ativo && P.cobraSetup === 'nao') {
+    rows.push(['Implantação', 'Sem custo adicional', true]);
+  }
+  rows.push(['Licença do sistema', $s('erp-licenca') === 'escritorio' ? 'Inclusa no honorário' : 'Contratada pelo cliente']);
+  el('pr-invest-rows').innerHTML = rows.map(([k,x,hl]) =>
+    `<div class="pr-invest-row${hl ? ' hl' : ''}"><span>${esc(k)}</span><strong>${esc(x)}</strong></div>`).join('');
+
+  /* ── Rotina de trabalho ── */
+  const rot = [
+    ...(v.cnpjs > 1 ? [['Empresas atendidas', `${v.cnpjs} CNPJs, em visão consolidada`]] : []),
+    ['Sistema de gestão', R.erp.name],
+    ['Situação do sistema', ERP_STATUS[$s('erp-status')]?.label || '—'],
+    ['Integração bancária', optText('integra-banco').split('—')[0].trim()],
+    ['Dedicação mensal estimada', fmtH(R.hTotal)],
+    ['Reuniões de resultado', $s('reunioes') === '0' ? 'Sob demanda' : `${$s('reunioes')} por mês`],
+    ['Canal de atendimento', optText('sla').split('—')[0].trim()],
+  ];
+  if (R.setup.ativo && R.setup.horas > 0) {
+    rot.push(['Prazo de implantação', `${Math.max(2, Math.ceil(R.setup.horas / 8))} semanas`]);
+  }
+  el('pr-rotina-body').innerHTML = rot.map(([k,x]) =>
+    `<tr><td>${esc(k)}</td><td>${esc(x)}</td></tr>`).join('');
+
+  /* ── Condições comerciais: padrão + o que for escrito no cartão ── */
+  const cont = { mensal:'mensal, com renovação automática', semestral:'semestral', anual:'anual' }[$s('contrato')] || 'mensal';
+  const cond = [
+    `Vigência ${cont}${R.desconto > 0 ? `, com o desconto de ${(R.desconto*100).toFixed(0)}% já refletido no valor acima` : ''}.`,
+    'Honorário reajustado anualmente pela variação do IPCA.',
+    'Pagamento até o 5º dia útil do mês de competência.',
+    `Escopo dimensionado para a volumetria informada nesta proposta; variações relevantes e recorrentes ensejam revisão de escopo e de honorário.`,
+    `Proposta válida por ${val.dias} dias, até ${val.ateLongo}.`,
+  ].map(esc).concat(escLinhas($s('prop-condicoes')).map(esc));
+  el('pr-cond').innerHTML = cond.map(c => `<li>${c}</li>`).join('');
+
+  /* ── Aceite ── */
+  el('pr-fecho').textContent =
+    'Permanecemos à disposição para detalhar qualquer ponto desta proposta. ' +
+    'O aceite pode ser formalizado pela assinatura abaixo ou por confirmação escrita, e a implantação é iniciada na sequência, conforme o cronograma combinado.';
+
+  const resp = $s('prop-resp').trim();
+  el('pr-sign-resp').textContent      = resp || 'Empresarial — BPO Financeiro';
+  el('pr-sign-resp-role').textContent = resp ? 'Empresarial — BPO Financeiro' : 'Pela contratada · assinatura e data';
+  el('pr-sign-cli').textContent       = $s('razao-social') || 'Cliente';
+  el('pr-sign-cli-role').textContent  = ac ? `${ac} · assinatura e data` : 'De acordo · assinatura e data';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    COPIAR E LIMPAR
    ═══════════════════════════════════════════════════════════════════════ */
 function doCopy() {
@@ -3544,6 +4575,9 @@ function doCopy() {
     `Cliente   : ${$s('razao-social') || 'Não informado'}`,
     `CNPJ      : ${$s('cnpj') || '—'}`,
     `Regime    : ${optText('regime')}`,
+    R.v.cnpjs > 1
+      ? `Grupo     : ${R.v.cnpjs} CNPJs · volumetria ${R.v.volFator > 1 ? 'por CNPJ (×' + R.v.cnpjs + ')' : 'total do grupo'}`
+      : '',
     `Sistema   : ${R.erp.name}`,
     `Contrato  : ${optText('contrato')}`,
     '',
@@ -3589,6 +4623,8 @@ function doClear() {
   });
   ['cc','aa','cdb','cart','adq'].forEach(k => { const e = el(`q-${k}`); if (e) e.value = 0; });
   el('qtd-cnpj').value = 1;
+  el('base-volume').value = 'grupo';
+  el('prop-validade').value = 15;   /* o laço acima zera o campo; o padrão volta aqui */
 
   el('regime').selectedIndex = 0;
   el('contrato').selectedIndex = 0;
@@ -3605,6 +4641,7 @@ function doClear() {
 
   state.platforms = {};
   state.needs = {};
+  state.multiAuto = false;
   state.services = { ap:true, ar:true, conc:true };
   state.erpManual = false;
   state.erp = 'ca';
