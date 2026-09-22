@@ -1316,6 +1316,11 @@
       #print-page {
         display: flex !important;
         position: static !important;
+        /* O documento tem largura fixa (A4 menos as margens). Se a caixa da
+           página for mais larga — papel Carta, margens zeradas no diálogo —
+           as margens automáticas centralizam em vez de deixar o documento
+           colado à esquerda. */
+        margin-inline: auto !important;
         break-inside: avoid; break-after: avoid; page-break-after: avoid;
       }
       #print-page * { break-inside: avoid; }
